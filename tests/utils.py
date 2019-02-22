@@ -9,9 +9,10 @@ from hypothesis.errors import (NoSuchExample,
 from hypothesis.searchstrategy import SearchStrategy
 
 Domain = TypeVar('Domain')
+Strategy = SearchStrategy
 
 
-def find(strategy: SearchStrategy[Domain]) -> Domain:
+def find(strategy: Strategy[Domain]) -> Domain:
     first_object_list = []
 
     def condition(object_: Any) -> bool:
