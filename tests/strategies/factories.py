@@ -14,12 +14,11 @@ from typing import (Any,
 
 from hypothesis import strategies
 
+from reprit.hints import Initializer
 from tests.utils import (Domain,
                          Strategy)
 from .literals.factories import (to_dictionaries,
                                  to_homogeneous_lists)
-
-Initializer = Callable[..., None]
 
 
 def to_classes(*,
