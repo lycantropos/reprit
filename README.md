@@ -56,6 +56,46 @@ Install:
   pypy setup.py install
   ```
 
+Usage
+-----
+
+Let's suppose we are defining a class and we want to have `__repr__`, that:
+
+1. Includes parameters involved in instance creation. 
+For simple cases it should be possible 
+to copy string & paste in some place (e.g. REPL session) 
+and have similar object definition with as less work as possible. 
+This helps a lot during debugging sessions, logging, 
+in failed test cases with randomly generated data, etc.
+2. In case of signature change, 
+method should handle this automatically for simple cases 
+like renaming/removing/changing order of parameters.
+
+This can be done like
+```python
+from reprit.base import generate_repr
+
+
+class MyClass:
+    def __init__(self, positional, *variadic_positional, keyword_only, **variadic_keyword):
+        self.positional = positional
+        self.variadic_positional = variadic_positional
+        self.keyword_only = keyword_only
+        self.variadic_keyword = variadic_keyword
+    
+    __repr__ = generate_repr(__init__)
+```
+after that
+```python
+>>> MyClass(range(10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+MyClass(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+```
+
+*Note*: this method doesn't automatically handle changes during runtime 
+(e.g. if someone deletes instance field 
+or replaces `MyClass.__init__` method implementation), 
+in this case user should update `__repr__` method as well.
+
 Development
 -----------
 
