@@ -9,7 +9,6 @@ from types import MethodType
 from typing import (Any,
                     Callable,
                     Dict,
-                    Optional,
                     Tuple,
                     Type)
 
@@ -39,7 +38,7 @@ def to_initializers(
         names: Strategy[str] = strategies.just('__init__'),
         self_parameters_names: Strategy[str] = strategies.just('self'),
         parameters_names: Strategy[str],
-        parameters_names_unique_by: Optional[Map[str, int]] = lambda x: x,
+        parameters_names_unique_by: Map[str, int] = lambda x: x,
         field_name_factories: Strategy[Operator[str]],
         positionals_or_keywords_counts: Strategy[int],
         variadic_positional_flags: Strategy[bool],
