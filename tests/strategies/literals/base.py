@@ -5,6 +5,7 @@ from typing import (Dict,
                     Union)
 
 from hypothesis import strategies
+from hypothesis._strategies import sampled_from
 
 from .factories import (to_characters,
                         to_dictionaries,
@@ -51,3 +52,10 @@ objects = (hashables
            | iterables
            | sets
            | to_dictionaries(hashables, deferred_objects))
+
+simple_class_field_name_factories = (
+    strategies.just(lambda parameter_name: parameter_name))
+complex_class_field_name_factories = (
+        sampled_from([lambda parameter_name: '_' + parameter_name.lstrip('_'),
+                      lambda parameter_name: parameter_name.rstrip('_') + '_'])
+        | simple_class_field_name_factories)
