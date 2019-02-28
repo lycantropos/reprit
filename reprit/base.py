@@ -1,20 +1,20 @@
 import inspect
 from collections import (OrderedDict,
                          abc)
-from typing import (Any,
-                    Callable,
-                    Iterable,
+from typing import (Iterable,
                     Union)
 
+from . import seekers
 from .hints import (Constructor,
                     Domain,
+                    FieldSeeker,
                     Initializer,
                     Map)
 
 
 def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
                   *,
-                  field_seeker: Callable[[Domain, str], Any] = getattr
+                  field_seeker: FieldSeeker = seekers.simple
                   ) -> Map[Domain, str]:
     """
     Generates ``__repr__`` method based on constructor/initializer parameters.
@@ -30,7 +30,7 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     """
     signature = inspect.signature(constructor_or_initializer)
     parameters = OrderedDict(signature.parameters)
-    # remove `self`
+    # remove `cls`/`self`
     parameters.popitem(0)
     to_positional_argument_string = repr
     to_keyword_argument_string = '{}={!r}'.format
