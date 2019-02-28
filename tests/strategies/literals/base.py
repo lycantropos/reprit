@@ -5,14 +5,16 @@ from typing import (Dict,
                     Union)
 
 from hypothesis import strategies
-from hypothesis._strategies import sampled_from
 
+from tests.configs import (MAX_ITERABLES_SIZE,
+                           MAX_PARAMETERS_COUNT)
 from .factories import (to_characters,
                         to_dictionaries,
                         to_homogeneous_frozensets,
                         to_homogeneous_sequences,
                         to_homogeneous_sets,
                         to_homogeneous_tuples,
+                        to_integers,
                         to_strings)
 
 Serializable = Union[None, bool, float, int, str]
@@ -53,9 +55,12 @@ objects = (hashables
            | sets
            | to_dictionaries(hashables, deferred_objects))
 
-simple_class_field_name_factories = (
-    strategies.just(lambda parameter_name: parameter_name))
+parameters_counts = to_integers(0,
+                                min(MAX_ITERABLES_SIZE, MAX_PARAMETERS_COUNT)
+                                // len(inspect._ParameterKind))
+
+simple_class_field_name_factories = strategies.just(lambda name: name)
 complex_class_field_name_factories = (
-        sampled_from([lambda parameter_name: '_' + parameter_name.lstrip('_'),
-                      lambda parameter_name: parameter_name.rstrip('_') + '_'])
-        | simple_class_field_name_factories)
+        simple_class_field_name_factories
+        | strategies.sampled_from([lambda name: '_' + name.lstrip('_'),
+                                   lambda name: name.rstrip('_') + '_']))
