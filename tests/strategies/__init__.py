@@ -2,7 +2,10 @@ from .factories import (to_classes,
                         to_initializers,
                         to_instances)
 from .literals.base import (booleans,
-                            objects)
+                            complex_class_field_name_factories,
+                            objects,
+                            parameters_counts,
+                            simple_class_field_name_factories)
 from .literals.factories import (to_fixed_dictionaries,
                                  to_integers,
                                  to_tuples)

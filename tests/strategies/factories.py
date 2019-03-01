@@ -14,7 +14,9 @@ from typing import (Any,
 
 from hypothesis import strategies
 
-from reprit.hints import Initializer
+from reprit.hints import (Initializer,
+                          Map,
+                          Operator)
 from tests.utils import (Domain,
                          Strategy)
 from .literals.factories import (to_dictionaries,
@@ -36,6 +38,8 @@ def to_initializers(
         names: Strategy[str] = strategies.just('__init__'),
         self_parameters_names: Strategy[str] = strategies.just('self'),
         parameters_names: Strategy[str],
+        parameters_names_unique_by: Map[str, int] = lambda x: x,
+        field_name_factories: Strategy[Operator[str]],
         positionals_or_keywords_counts: Strategy[int],
         variadic_positional_flags: Strategy[bool],
         keywords_only_counts: Strategy[int],
@@ -56,7 +60,7 @@ def to_initializers(
                                                         self_parameter_name)),
                                         min_size=rest_parameters_count,
                                         max_size=rest_parameters_count,
-                                        unique=True))
+                                        unique_by=parameters_names_unique_by))
     rest_parameters_nodes = (ast.arg(parameter_name, None)
                              for parameter_name in rest_parameters_names)
     positionals_or_keywords_nodes = (
@@ -82,7 +86,8 @@ def to_initializers(
     if rest_parameters_names:
         body = [ast.Assign([ast.Attribute(ast.Name(self_parameter_name,
                                                    ast.Load()),
-                                          parameter_name,
+                                          draw(field_name_factories)
+                                          (parameter_name),
                                           ast.Store())],
                            ast.Name(parameter_name, ast.Load()))
                 for parameter_name in rest_parameters_names]

@@ -76,7 +76,7 @@ This can be done like
 from reprit.base import generate_repr
 
 
-class MyClass:
+class DummyContainer:
     def __init__(self, positional, *variadic_positional, keyword_only, **variadic_keyword):
         self.positional = positional
         self.variadic_positional = variadic_positional
@@ -87,13 +87,33 @@ class MyClass:
 ```
 after that
 ```python
->>> MyClass(range(10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
-MyClass(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+>>> DummyContainer(range(10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+DummyContainer(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+```
+or for a class with avoidance of built-in names clash & private attributes & both
+```python
+from reprit import seekers
+from reprit.base import generate_repr
+
+
+class State:
+    def __init__(self, id_, name, zip_):
+        self.id = id_
+        self._name = name
+        self._zip = zip_
+
+    __repr__ = generate_repr(__init__,
+                             field_seeker=seekers.complex_)
+```
+after that
+```python
+>>> State(1, 'Alabama', 36016)
+State(1, 'Alabama', 36016)
 ```
 
 *Note*: this method doesn't automatically handle changes during runtime 
 (e.g. if someone deletes instance field 
-or replaces `MyClass.__init__` method implementation), 
+or replaces `__init__`/`__new__` method implementation), 
 in this case user should update `__repr__` method as well.
 
 Development
