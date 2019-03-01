@@ -59,9 +59,30 @@ def complex_class() -> Type[Domain]:
 
 
 @pytest.fixture(scope='function')
+def unsupported_complex_class() -> Type[Domain]:
+    class Unsupported:
+        def __init__(self, a, a_):
+            self._a = a
+            self.a_ = a_
+
+    return Unsupported
+
+
+@pytest.fixture(scope='function')
 def complex_instance(complex_class: Type[Domain]) -> Domain:
     return find(strategies.to_instances(
             classes=just(complex_class),
+            values={Any: strategies.objects},
+            variadic_positionals_counts=strategies.parameters_counts,
+            variadic_keywords_names=strategies.snake_case_identifiers,
+            variadic_keywords_counts=strategies.parameters_counts))
+
+
+@pytest.fixture(scope='function')
+def unsupported_complex_instance(unsupported_complex_class: Type[Domain]
+                                 ) -> Type[Domain]:
+    return find(strategies.to_instances(
+            classes=just(unsupported_complex_class),
             values={Any: strategies.objects},
             variadic_positionals_counts=strategies.parameters_counts,
             variadic_keywords_names=strategies.snake_case_identifiers,
