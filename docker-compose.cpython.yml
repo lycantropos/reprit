@@ -14,5 +14,4 @@ services:
       - ./README.md:/opt/reprit/README.md
       - ./setup.py:/opt/reprit/setup.py
       - ./setup.cfg:/opt/reprit/setup.cfg
-    entrypoint: python3
-    command: setup.py test
+    entrypoint: pytest
