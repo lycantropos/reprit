@@ -85,8 +85,8 @@ This can be done like
 ```
 after that
 ```python
->>> DummyContainer(range(10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
-DummyContainer(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+>>> DummyContainer(range(10), 2, 3, keyword_only='some', a={'sample': 42})
+DummyContainer(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42})
 
 ```
 or for a class with avoidance of built-in names clash
