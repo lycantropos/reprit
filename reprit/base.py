@@ -29,9 +29,8 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     based on class instance and name.
 
     >>> from reprit.base import generate_repr
-    >>> from typing import Optional
     >>> class Person:
-    ...     def __init__(self, name: str, *, address: Optional[str] = None):
+    ...     def __init__(self, name, *, address=None):
     ...         self.name = name
     ...         self.address = address
     ...     __repr__ = generate_repr(__init__)
@@ -41,7 +40,7 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     Person('Mary', address='Somewhere on Earth')
     >>> from reprit import seekers
     >>> class Account:
-    ...     def __init__(self, id_: str, *, balance: int = 0):
+    ...     def __init__(self, id_, *, balance=0):
     ...         self.id = id_
     ...         self.balance = balance
     ...     __repr__ = generate_repr(__init__,
