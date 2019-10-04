@@ -17,7 +17,7 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
                   field_seeker: FieldSeeker = seekers.simple
                   ) -> Map[Domain, str]:
     """
-    Generates ``__repr__`` method based on constructor/initializer parameters.
+    Generates `__repr__` method based on constructor/initializer parameters.
 
     We are assuming that no parameters data
     get thrown away during instance creation,
@@ -27,6 +27,29 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     which parameters will be used in resulting representation.
     :param field_seeker: function that re-creates parameter value
     based on class instance and name.
+
+    >>> from reprit.base import generate_repr
+    >>> from typing import Optional
+    >>> class Person:
+    ...     def __init__(self, name: str, *, address: Optional[str] = None):
+    ...         self.name = name
+    ...         self.address = address
+    ...     __repr__ = generate_repr(__init__)
+    >>> Person('Adrian')
+    Person('Adrian', address=None)
+    >>> Person('Mary', address='Somewhere on Earth')
+    Person('Mary', address='Somewhere on Earth')
+    >>> from reprit import seekers
+    >>> class Account:
+    ...     def __init__(self, id_: str, *, balance: int = 0):
+    ...         self.id = id_
+    ...         self.balance = balance
+    ...     __repr__ = generate_repr(__init__,
+    ...                              field_seeker=seekers.complex_)
+    >>> Account(1)
+    Account(1, balance=0)
+    >>> Account(100, balance=-10)
+    Account(100, balance=-10)
     """
     signature = inspect.signature(constructor_or_initializer)
     parameters = OrderedDict(signature.parameters)
