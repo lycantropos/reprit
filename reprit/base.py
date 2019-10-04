@@ -42,17 +42,17 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     def to_arguments_strings(object_: Domain) -> Iterable[str]:
         for parameter_name, parameter in parameters.items():
             field = field_seeker(object_, parameter_name)
-            if parameter.kind == inspect._VAR_POSITIONAL:
+            if parameter.kind is inspect._VAR_POSITIONAL:
                 if isinstance(field, abc.Iterator):
                     # we don't want to exhaust iterator
                     yield '...'
                 else:
                     yield from map(to_positional_argument_string, field)
-            elif parameter.kind == inspect._VAR_KEYWORD:
+            elif parameter.kind is inspect._VAR_KEYWORD:
                 yield from map(to_keyword_argument_string,
                                field.keys(), field.values())
-            elif parameter.kind in {inspect._POSITIONAL_ONLY,
-                                    inspect._POSITIONAL_OR_KEYWORD}:
+            elif (parameter.kind is inspect._POSITIONAL_ONLY
+                  or parameter.kind is inspect._POSITIONAL_OR_KEYWORD):
                 yield to_positional_argument_string(field)
             else:
                 yield to_keyword_argument_string(parameter_name, field)
