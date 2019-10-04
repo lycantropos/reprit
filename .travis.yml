@@ -5,7 +5,8 @@ language: python
 
 matrix:
   include:
-    - python: pypy3.5
+    - python: pypy3.5-6.0.0
+    - python: pypy3.6-7.0.0
     - python: 3.5
     - python: 3.6
     - python: 3.7
@@ -13,10 +14,13 @@ matrix:
       sudo: true
 
 install:
-  - python -m pip install codecov>=2.0.15
+  - python -m pip install --upgrade pip setuptools
+  - python -m pip install --upgrade codecov
+  - python -m pip install --force-reinstall -r requirements-tests.txt
 
 script:
-  - python setup.py test
+  - pytest
+  - python -m doctest README.md
 
 after_success:
-  - codecov
+  - python -m codecov -f coverage.xml -X gcov

@@ -12,6 +12,7 @@ services:
       - ./reprit/:/opt/reprit/reprit/
       - ./tests/:/opt/reprit/tests/
       - ./README.md:/opt/reprit/README.md
+      - ./requirements-tests.txt:/opt/reprit/requirements-tests.txt
       - ./setup.py:/opt/reprit/setup.py
       - ./setup.cfg:/opt/reprit/setup.cfg
     entrypoint: pytest

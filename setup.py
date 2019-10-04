@@ -7,14 +7,7 @@ import reprit
 
 project_base_url = 'https://github.com/lycantropos/reprit/'
 
-setup_requires = [
-    'pytest-runner>=4.2',
-]
-tests_require = [
-    'pytest>=3.8.1',
-    'pytest-cov>=2.6.0',
-    'hypothesis>=3.73.1',
-]
+tests_require = Path('requirements-tests.txt').read_text()
 
 setup(name=reprit.__name__,
       packages=find_packages(exclude=('tests', 'tests.*')),
@@ -37,5 +30,4 @@ setup(name=reprit.__name__,
       url=project_base_url,
       download_url=project_base_url + 'archive/master.zip',
       python_requires='>=3.5.3',
-      setup_requires=setup_requires,
       tests_require=tests_require)
