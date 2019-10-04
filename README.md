@@ -73,42 +73,42 @@ like renaming/removing/changing order of parameters.
 
 This can be done like
 ```python
-from reprit.base import generate_repr
+>>> from reprit.base import generate_repr
+>>> class DummyContainer:
+...     def __init__(self, positional, *variadic_positional, keyword_only, **variadic_keyword):
+...         self.positional = positional
+...         self.variadic_positional = variadic_positional
+...         self.keyword_only = keyword_only
+...         self.variadic_keyword = variadic_keyword
+...     __repr__ = generate_repr(__init__)
 
-
-class DummyContainer:
-    def __init__(self, positional, *variadic_positional, keyword_only, **variadic_keyword):
-        self.positional = positional
-        self.variadic_positional = variadic_positional
-        self.keyword_only = keyword_only
-        self.variadic_keyword = variadic_keyword
-    
-    __repr__ = generate_repr(__init__)
 ```
 after that
 ```python
 >>> DummyContainer(range(10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
 DummyContainer(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+
 ```
-or for a class with avoidance of built-in names clash & private attributes & both
+or for a class with avoidance of built-in names clash
+& private'ish attributes
+& both
 ```python
-from reprit import seekers
-from reprit.base import generate_repr
+>>> from reprit import seekers
+>>> from reprit.base import generate_repr
+>>> class State:
+...     def __init__(self, id_, name, zip_):
+...         self.id = id_
+...         self._name = name
+...         self._zip = zip_
+...     __repr__ = generate_repr(__init__,
+...                              field_seeker=seekers.complex_)
 
-
-class State:
-    def __init__(self, id_, name, zip_):
-        self.id = id_
-        self._name = name
-        self._zip = zip_
-
-    __repr__ = generate_repr(__init__,
-                             field_seeker=seekers.complex_)
 ```
 after that
 ```python
 >>> State(1, 'Alabama', 36016)
 State(1, 'Alabama', 36016)
+
 ```
 
 *Note*: this method doesn't automatically handle changes during runtime 
