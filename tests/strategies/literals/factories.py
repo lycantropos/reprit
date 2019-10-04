@@ -11,8 +11,6 @@ from tests.utils import (Domain,
                          Strategy)
 
 to_characters = strategies.characters
-to_fixed_dictionaries = strategies.fixed_dictionaries
-to_integers = strategies.integers
 
 
 def limit_max_size(factory: Callable[..., Strategy[Domain]]):
@@ -59,10 +57,3 @@ def to_homogeneous_tuples(elements: Optional[Strategy[Domain]] = None,
 
 
 to_strings = limit_max_size(strategies.text)
-
-
-def to_tuples(*elements: Optional[Strategy]) -> Strategy[Tuple]:
-    if len(elements) > MAX_ITERABLES_SIZE:
-        raise ValueError('Elements count should not be greater than {limit}.'
-                         .format(limit=MAX_ITERABLES_SIZE))
-    return strategies.tuples(*elements)

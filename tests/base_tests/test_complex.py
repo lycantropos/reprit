@@ -1,44 +1,54 @@
-from typing import Type
+from typing import (Tuple,
+                    Type)
 
 import pytest
+from hypothesis import given
 
 from reprit import seekers
 from reprit.base import generate_repr
+from tests import strategies
 from tests.utils import Domain
 
 
-def test_basic(complex_class: Type[Domain]) -> None:
-    result = generate_repr(complex_class.__init__,
+@given(strategies.complex_classes)
+def test_basic(class_: Type[Domain]) -> None:
+    result = generate_repr(class_.__init__,
                            field_seeker=seekers.complex_)
 
     assert callable(result)
 
 
-def test_call(complex_class: Type[Domain],
-              complex_instance: Domain) -> None:
-    repr_ = generate_repr(complex_class.__init__,
+@given(strategies.complex_classes_with_instances)
+def test_call(class_with_instance: Tuple[Type[Domain], Domain]) -> None:
+    cls, instance = class_with_instance
+
+    repr_ = generate_repr(cls.__init__,
                           field_seeker=seekers.complex_)
 
-    result = repr_(complex_instance)
+    result = repr_(instance)
 
     assert isinstance(result, str)
 
 
-def test_evaluation(complex_class: Type[Domain],
-                    complex_instance: Domain) -> None:
-    repr_ = generate_repr(complex_class.__init__,
+@given(strategies.complex_classes_with_instances)
+def test_evaluation(class_with_instance: Tuple[Type[Domain], Domain]) -> None:
+    cls, instance = class_with_instance
+
+    repr_ = generate_repr(cls.__init__,
                           field_seeker=seekers.complex_)
-    instance_repr = repr_(complex_instance)
+    instance_repr = repr_(instance)
 
-    result = eval(instance_repr, {complex_class.__name__: complex_class})
+    result = eval(instance_repr, {cls.__name__: cls})
 
-    assert vars(complex_instance) == vars(result)
+    assert vars(instance) == vars(result)
 
 
-def test_unsupported(unsupported_complex_class: Type[Domain],
-                     unsupported_complex_instance: Domain) -> None:
-    repr_ = generate_repr(unsupported_complex_class.__init__,
+@given(strategies.unsupported_complex_classes_with_instances)
+def test_unsupported(class_with_instance: Tuple[Type[Domain], Domain]) -> None:
+    cls, instance = class_with_instance
+
+    repr_ = generate_repr(cls.__init__,
                           field_seeker=seekers.complex_)
 
     with pytest.raises(AttributeError):
-        repr_(unsupported_complex_instance)
+        repr_(instance)

@@ -1,29 +1,38 @@
-from typing import Type
+from typing import (Tuple,
+                    Type)
+
+from hypothesis import given
 
 from reprit.base import generate_repr
+from tests import strategies
 from tests.utils import Domain
 
 
-def test_basic(simple_class: Type[Domain]) -> None:
-    result = generate_repr(simple_class.__init__)
+@given(strategies.simple_classes)
+def test_basic(cls: Type[Domain]) -> None:
+    result = generate_repr(cls.__init__)
 
     assert callable(result)
 
 
-def test_call(simple_class: Type[Domain],
-              simple_instance: Domain) -> None:
-    repr_ = generate_repr(simple_class.__init__)
+@given(strategies.simple_classes_with_instances)
+def test_call(class_with_instance: Tuple[Type[Domain], Domain]) -> None:
+    cls, instance = class_with_instance
 
-    result = repr_(simple_instance)
+    repr_ = generate_repr(cls.__init__)
+
+    result = repr_(instance)
 
     assert isinstance(result, str)
 
 
-def test_evaluation(simple_class: Type[Domain],
-                    simple_instance: Domain) -> None:
-    repr_ = generate_repr(simple_class.__init__)
-    instance_repr = repr_(simple_instance)
+@given(strategies.simple_classes_with_instances)
+def test_evaluation(class_with_instance: Tuple[Type[Domain], Domain]) -> None:
+    cls, instance = class_with_instance
 
-    result = eval(instance_repr, {simple_class.__name__: simple_class})
+    repr_ = generate_repr(cls.__init__)
+    instance_repr = repr_(instance)
 
-    assert vars(result) == vars(simple_instance)
+    result = eval(instance_repr, {cls.__name__: cls})
+
+    assert vars(result) == vars(instance)
