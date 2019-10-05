@@ -7,7 +7,7 @@ RUN pip install --upgrade pip setuptools
 
 WORKDIR /opt/reprit
 
-COPY reprit reprit/
+COPY reprit/ reprit/
 COPY tests/ tests/
 COPY README.md .
 COPY requirements-tests.txt .
