@@ -1,3 +1,5 @@
+import platform
+import sys
 from typing import (Tuple,
                     Type)
 
@@ -30,6 +32,9 @@ def test_call(class_with_instance: Tuple[Type[Domain], Domain]) -> None:
     assert isinstance(result, str)
 
 
+@pytest.mark.skipif(platform.python_implementation() == 'PyPy'
+                    and sys.version_info > (3, 5, 3),
+                    reason='Unreproducible failures on PyPy3.5.3')
 @given(strategies.complex_classes_with_instances)
 def test_evaluation(class_with_instance: Tuple[Type[Domain], Domain]) -> None:
     cls, instance = class_with_instance
