@@ -1,3 +1,4 @@
+from .literals.base import booleans
 from .models import (complex_classes,
                      complex_classes_with_instances,
                      simple_classes,
