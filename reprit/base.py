@@ -14,8 +14,8 @@ from .hints import (Constructor,
 
 def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
                   *,
-                  field_seeker: FieldSeeker = seekers.simple
-                  ) -> Map[Domain, str]:
+                  field_seeker: FieldSeeker = seekers.simple,
+                  prefer_keyword: bool = False) -> Map[Domain, str]:
     """
     Generates `__repr__` method based on constructor/initializer parameters.
 
@@ -27,6 +27,8 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     which parameters will be used in resulting representation.
     :param field_seeker: function that re-creates parameter value
     based on class instance and name.
+    :param prefer_keyword: flag that tells if positional-or-keyword parameters
+    should be outputted as keyword ones when possible.
 
     >>> from reprit.base import generate_repr
     >>> class Person:
@@ -54,6 +56,10 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     parameters = OrderedDict(signature.parameters)
     # remove `cls`/`self`
     parameters.popitem(0)
+    variadic_positional = next((parameter
+                                for parameter in parameters.values()
+                                if parameter.kind is inspect._VAR_POSITIONAL),
+                               None)
     to_positional_argument_string = repr
     to_keyword_argument_string = '{}={!r}'.format
 
@@ -62,21 +68,28 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
                 + '(' + ', '.join(to_arguments_strings(self)) + ')')
 
     def to_arguments_strings(object_: Domain) -> Iterable[str]:
+        variadic_positional_unset = (
+                variadic_positional is None
+                or not field_seeker(object_, variadic_positional.name))
         for parameter_name, parameter in parameters.items():
             field = field_seeker(object_, parameter_name)
-            if parameter.kind is inspect._VAR_POSITIONAL:
+            if parameter.kind is inspect._POSITIONAL_ONLY:
+                yield to_positional_argument_string(field)
+            elif parameter.kind is inspect._POSITIONAL_OR_KEYWORD:
+                if prefer_keyword and variadic_positional_unset:
+                    yield to_keyword_argument_string(parameter_name, field)
+                else:
+                    yield to_positional_argument_string(field)
+            elif parameter.kind is inspect._VAR_POSITIONAL:
                 if isinstance(field, abc.Iterator):
                     # we don't want to exhaust iterator
                     yield '...'
                 else:
                     yield from map(to_positional_argument_string, field)
-            elif parameter.kind is inspect._VAR_KEYWORD:
+            elif parameter.kind is inspect._KEYWORD_ONLY:
+                yield to_keyword_argument_string(parameter_name, field)
+            else:
                 yield from map(to_keyword_argument_string,
                                field.keys(), field.values())
-            elif (parameter.kind is inspect._POSITIONAL_ONLY
-                  or parameter.kind is inspect._POSITIONAL_OR_KEYWORD):
-                yield to_positional_argument_string(field)
-            else:
-                yield to_keyword_argument_string(parameter_name, field)
 
     return __repr__
