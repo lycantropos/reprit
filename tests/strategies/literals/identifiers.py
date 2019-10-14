@@ -11,10 +11,10 @@ def is_not_keyword(string: str) -> bool:
 
 
 snake_case_alphabet = strategies.sampled_from(ascii_lowercase + '_' + digits)
-snake_case_identifiers = (strategies.text(alphabet=snake_case_alphabet,
-                                          min_size=1)
-                          .filter(str.isidentifier)
-                          .filter(is_not_keyword))
+snake_case = (strategies.text(alphabet=snake_case_alphabet,
+                              min_size=1)
+              .filter(str.isidentifier)
+              .filter(is_not_keyword))
 camel_case_alphabet = strategies.sampled_from(ascii_letters + digits)
 
 
@@ -22,8 +22,8 @@ def camel_case_to_pascal_case(string: str) -> str:
     return string[:1].capitalize() + string[1:]
 
 
-pascal_case_identifiers = (strategies.text(alphabet=camel_case_alphabet,
-                                           min_size=1)
-                           .filter(str.isidentifier)
-                           .filter(is_not_keyword)
-                           .map(camel_case_to_pascal_case))
+pascal_case = (strategies.text(alphabet=camel_case_alphabet,
+                               min_size=1)
+               .filter(str.isidentifier)
+               .filter(is_not_keyword)
+               .map(camel_case_to_pascal_case))

@@ -14,7 +14,6 @@ from .factories import (to_characters,
                         to_homogeneous_sequences,
                         to_homogeneous_sets,
                         to_homogeneous_tuples,
-                        to_integers,
                         to_strings)
 
 Serializable = Union[None, bool, float, int, str]
@@ -37,8 +36,7 @@ strings = to_strings(to_characters())
 
 
 def module_to_classes(module: ModuleType) -> List[type]:
-    return list(filter(inspect.isclass,
-                       vars(module).values()))
+    return list(filter(inspect.isclass, vars(module).values()))
 
 
 deferred_hashables = strategies.deferred(lambda: hashables)
@@ -55,9 +53,10 @@ objects = (hashables
            | sets
            | to_dictionaries(hashables, deferred_objects))
 
-parameters_counts = to_integers(0,
-                                min(MAX_ITERABLES_SIZE, MAX_PARAMETERS_COUNT)
-                                // len(inspect._ParameterKind))
+parameters_counts = strategies.integers(
+        min_value=0,
+        max_value=(min(MAX_ITERABLES_SIZE, MAX_PARAMETERS_COUNT)
+                   // len(inspect._ParameterKind)))
 
 simple_class_field_name_factories = strategies.just(lambda name: name)
 complex_class_field_name_factories = (

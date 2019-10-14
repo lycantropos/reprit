@@ -1,8 +1,8 @@
 reprit
 ======
 
-[![](https://travis-ci.org/lycantropos/reprit.svg?branch=master)](https://travis-ci.org/lycantropos/reprit "Travis CI")
-[![](https://ci.appveyor.com/api/projects/status/github/lycantropos/reprit?branch=master&svg=true)](https://ci.appveyor.com/project/lycantropos/reprit "AppVeyor")
+[![](https://travis-ci.com/lycantropos/reprit.svg?branch=master)](https://travis-ci.com/lycantropos/reprit "Travis CI")
+[![](https://dev.azure.com/lycantropos/reprit/_apis/build/status/lycantropos.reprit?branchName=master)](https://dev.azure.com/lycantropos/reprit/_build/latest?branchName=master "Azure Pipelines")
 [![](https://codecov.io/gh/lycantropos/reprit/branch/master/graph/badge.svg)](https://codecov.io/gh/lycantropos/reprit "Codecov")
 [![](https://img.shields.io/github/license/lycantropos/reprit.svg)](https://github.com/lycantropos/reprit/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/reprit.svg)](https://badge.fury.io/py/reprit "PyPI")
@@ -65,50 +65,50 @@ Let's suppose we are defining a class and we want to have `__repr__`, that:
 For simple cases it should be possible 
 to copy string & paste in some place (e.g. REPL session) 
 and have similar object definition with as less work as possible. 
-This helps a lot during debugging sessions, logging, 
+This helps a lot during debugging, logging, 
 in failed test cases with randomly generated data, etc.
-2. In case of signature change, 
+2. In case of signature change 
 method should handle this automatically for simple cases 
 like renaming/removing/changing order of parameters.
 
 This can be done like
 ```python
-from reprit.base import generate_repr
+>>> from reprit.base import generate_repr
+>>> class DummyContainer:
+...     def __init__(self, positional, *variadic_positional, keyword_only, **variadic_keyword):
+...         self.positional = positional
+...         self.variadic_positional = variadic_positional
+...         self.keyword_only = keyword_only
+...         self.variadic_keyword = variadic_keyword
+...     __repr__ = generate_repr(__init__)
 
-
-class DummyContainer:
-    def __init__(self, positional, *variadic_positional, keyword_only, **variadic_keyword):
-        self.positional = positional
-        self.variadic_positional = variadic_positional
-        self.keyword_only = keyword_only
-        self.variadic_keyword = variadic_keyword
-    
-    __repr__ = generate_repr(__init__)
 ```
 after that
 ```python
->>> DummyContainer(range(10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
-DummyContainer(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42}, b={1, 2})
+>>> DummyContainer(range(10), 2, 3, keyword_only='some', a={'sample': 42})
+DummyContainer(range(0, 10), 2, 3, keyword_only='some', a={'sample': 42})
+
 ```
-or for a class with avoidance of built-in names clash & private attributes & both
+or for a class with avoidance of built-in names clash
+& private'ish attributes
+& both
 ```python
-from reprit import seekers
-from reprit.base import generate_repr
+>>> from reprit import seekers
+>>> from reprit.base import generate_repr
+>>> class State:
+...     def __init__(self, id_, name, zip_):
+...         self.id = id_
+...         self._name = name
+...         self._zip = zip_
+...     __repr__ = generate_repr(__init__,
+...                              field_seeker=seekers.complex_)
 
-
-class State:
-    def __init__(self, id_, name, zip_):
-        self.id = id_
-        self._name = name
-        self._zip = zip_
-
-    __repr__ = generate_repr(__init__,
-                             field_seeker=seekers.complex_)
 ```
 after that
 ```python
 >>> State(1, 'Alabama', 36016)
 State(1, 'Alabama', 36016)
+
 ```
 
 *Note*: this method doesn't automatically handle changes during runtime 

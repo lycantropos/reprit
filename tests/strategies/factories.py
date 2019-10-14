@@ -43,7 +43,7 @@ def to_initializers(
         positionals_or_keywords_counts: Strategy[int],
         variadic_positional_flags: Strategy[bool],
         keywords_only_counts: Strategy[int],
-        variadic_keyword_flags: Strategy[bool]) -> Initializer:
+        variadic_keyword_flags: Strategy[bool]) -> Strategy[Initializer]:
     name = draw(names)
     self_parameter_name = draw(self_parameters_names)
     positionals_or_keywords_count = draw(positionals_or_keywords_counts)
@@ -101,21 +101,23 @@ def to_initializers(
     return namespace[name]
 
 
-@strategies.composite
-def to_instances(draw: Callable[[Strategy[Domain]], Domain],
-                 classes: Strategy[Type[Domain]],
+def to_instances(cls: Type[Domain],
                  values: Dict[Type[Domain], Strategy[Domain]],
                  variadic_positionals_counts: Strategy[int],
                  variadic_keywords_names: Strategy[str],
                  variadic_keywords_counts: Strategy[int]) -> Strategy[Domain]:
-    cls = draw(classes)  # type: type
-    positionals, keywords = draw(to_method_arguments(
+    def unpack_arguments(arguments: Tuple[Tuple[Any, ...],
+                                          Dict[str, Any]]) -> Domain:
+        positionals, keywords = arguments
+        return cls(*positionals, **keywords)
+
+    return (to_method_arguments(
             method=cls.__init__,
             values=values,
             variadic_positionals_counts=variadic_positionals_counts,
             variadic_keywords_names=variadic_keywords_names,
-            variadic_keywords_counts=variadic_keywords_counts))
-    return cls(*positionals, **keywords)
+            variadic_keywords_counts=variadic_keywords_counts)
+            .map(unpack_arguments))
 
 
 @strategies.composite
@@ -126,7 +128,7 @@ def to_method_arguments(draw: Callable[[Strategy[Domain]], Domain],
                         variadic_positionals_counts: Strategy[int],
                         variadic_keywords_names: Strategy[str],
                         variadic_keywords_counts: Strategy[int]
-                        ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+                        ) -> Strategy[Tuple[Tuple[Any, ...], Dict[str, Any]]]:
     signature = inspect.signature(method)
     parameters = OrderedDict(signature.parameters)
     parameters.popitem(0)
@@ -141,10 +143,10 @@ def to_method_arguments(draw: Callable[[Strategy[Domain]], Domain],
         if parameter_default is not inspect._empty:
             parameter_values |= strategies.just(parameter_default)
         parameter_kind = parameter.kind
-        if parameter_kind in {inspect._POSITIONAL_ONLY,
-                              inspect._POSITIONAL_OR_KEYWORD}:
+        if (parameter_kind is inspect._POSITIONAL_ONLY
+                or parameter_kind is inspect._POSITIONAL_OR_KEYWORD):
             positionals.append(draw(parameter_values))
-        elif parameter_kind == inspect._VAR_POSITIONAL:
+        elif parameter_kind is inspect._VAR_POSITIONAL:
             def count_to_values(count: int) -> Strategy[Any]:
                 return to_homogeneous_lists(parameter_values,
                                             min_size=count,
@@ -152,7 +154,7 @@ def to_method_arguments(draw: Callable[[Strategy[Domain]], Domain],
 
             positionals.extend(draw(variadic_positionals_counts
                                     .flatmap(count_to_values)))
-        elif parameter_kind == inspect._KEYWORD_ONLY:
+        elif parameter_kind is inspect._KEYWORD_ONLY:
             keywords[parameter.name] = draw(parameter_values)
         else:
             def count_to_values(count: int) -> Strategy[Dict[str, Any]]:
