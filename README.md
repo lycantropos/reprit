@@ -65,9 +65,9 @@ Let's suppose we are defining a class and we want to have `__repr__`, that:
 For simple cases it should be possible 
 to copy string & paste in some place (e.g. REPL session) 
 and have similar object definition with as less work as possible. 
-This helps a lot during debugging sessions, logging, 
+This helps a lot during debugging, logging, 
 in failed test cases with randomly generated data, etc.
-2. In case of signature change, 
+2. In case of signature change 
 method should handle this automatically for simple cases 
 like renaming/removing/changing order of parameters.
 
