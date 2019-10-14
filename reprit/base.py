@@ -40,6 +40,16 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     Person('Adrian', address=None)
     >>> Person('Mary', address='Somewhere on Earth')
     Person('Mary', address='Somewhere on Earth')
+    >>> class ScoreBoard:
+    ...     def __init__(self, first, *rest):
+    ...         self.first = first
+    ...         self.rest = rest
+    ...     __repr__ = generate_repr(__init__,
+    ...                              prefer_keyword=True)
+    >>> ScoreBoard(1)
+    ScoreBoard(first=1)
+    >>> ScoreBoard(1, 40)
+    ScoreBoard(1, 40)
     >>> from reprit import seekers
     >>> class Account:
     ...     def __init__(self, id_, *, balance=0):
