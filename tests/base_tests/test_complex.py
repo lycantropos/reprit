@@ -58,9 +58,10 @@ def test_evaluation(class_with_instance: Tuple[Type[Domain], Domain],
     instance_repr = repr_(instance)
 
     result = eval(instance_repr,
-                  to_namespace(cls.__module__ + '.' + cls.__qualname__, cls)
-                  if with_module_name
-                  else to_namespace(cls.__qualname__, cls))
+                  to_namespace(cls.__module__ + '.' + cls.__qualname__
+                               if with_module_name
+                               else cls.__qualname__,
+                               cls))
 
     assert vars(instance) == vars(result)
 
