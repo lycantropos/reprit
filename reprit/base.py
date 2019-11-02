@@ -1,6 +1,7 @@
-import inspect
 from collections import (OrderedDict,
                          abc)
+from inspect import (_ParameterKind,
+                     signature)
 from typing import (Iterable,
                     Union)
 
@@ -15,7 +16,8 @@ from .hints import (Constructor,
 def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
                   *,
                   field_seeker: FieldSeeker = seekers.simple,
-                  prefer_keyword: bool = False) -> Map[Domain, str]:
+                  prefer_keyword: bool = False,
+                  with_module_name: bool = False) -> Map[Domain, str]:
     """
     Generates `__repr__` method based on constructor/initializer parameters.
 
@@ -27,8 +29,11 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     which parameters will be used in resulting representation.
     :param field_seeker: function that re-creates parameter value
     based on class instance and name.
-    :param prefer_keyword: flag that tells if positional-or-keyword parameters
-    should be outputted as keyword ones when possible.
+    :param prefer_keyword: flag that specifies
+    if positional-or-keyword parameters should be outputted
+    as keyword ones when possible.
+    :param with_module_name: flag that specifies
+    if module name should be added.
 
     >>> from reprit.base import generate_repr
     >>> class Person:
@@ -50,6 +55,18 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     ScoreBoard(first=1)
     >>> ScoreBoard(1, 40)
     ScoreBoard(1, 40)
+    >>> class Student:
+    ...     def __init__(self, name, group):
+    ...         self.name = name
+    ...         self.group = group
+    ...     __repr__ = generate_repr(__init__,
+    ...                              with_module_name=True)
+    >>> Student('Kira', 132)
+    reprit.base.Student('Kira', 132)
+    >>> Student('Kira', 132)
+    reprit.base.Student('Kira', 132)
+    >>> Student('Naomi', 248)
+    reprit.base.Student('Naomi', 248)
     >>> from reprit import seekers
     >>> class Account:
     ...     def __init__(self, id_, *, balance=0):
@@ -62,20 +79,27 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     >>> Account(100, balance=-10)
     Account(100, balance=-10)
     """
-    signature = inspect.signature(constructor_or_initializer)
-    parameters = OrderedDict(signature.parameters)
-    # remove `cls`/`self`
-    parameters.popitem(0)
-    variadic_positional = next((parameter
-                                for parameter in parameters.values()
-                                if parameter.kind is inspect._VAR_POSITIONAL),
-                               None)
-    to_positional_argument_string = repr
-    to_keyword_argument_string = '{}={!r}'.format
+    if with_module_name:
+        def to_class_name(cls: type) -> str:
+            return cls.__module__ + '.' + cls.__qualname__
+    else:
+        def to_class_name(cls: type) -> str:
+            return cls.__qualname__
 
     def __repr__(self: Domain) -> str:
-        return (type(self).__qualname__
+        return (to_class_name(type(self))
                 + '(' + ', '.join(to_arguments_strings(self)) + ')')
+
+    parameters = OrderedDict(signature(constructor_or_initializer).parameters)
+    # remove `cls`/`self`
+    parameters.popitem(0)
+    variadic_positional = next(
+            (parameter
+             for parameter in parameters.values()
+             if parameter.kind is _ParameterKind.VAR_POSITIONAL),
+            None)
+    to_positional_argument_string = repr
+    to_keyword_argument_string = '{}={!r}'.format
 
     def to_arguments_strings(object_: Domain) -> Iterable[str]:
         variadic_positional_unset = (
@@ -83,20 +107,20 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
                 or not field_seeker(object_, variadic_positional.name))
         for parameter_name, parameter in parameters.items():
             field = field_seeker(object_, parameter_name)
-            if parameter.kind is inspect._POSITIONAL_ONLY:
+            if parameter.kind is _ParameterKind.POSITIONAL_ONLY:
                 yield to_positional_argument_string(field)
-            elif parameter.kind is inspect._POSITIONAL_OR_KEYWORD:
+            elif parameter.kind is _ParameterKind.POSITIONAL_OR_KEYWORD:
                 if prefer_keyword and variadic_positional_unset:
                     yield to_keyword_argument_string(parameter_name, field)
                 else:
                     yield to_positional_argument_string(field)
-            elif parameter.kind is inspect._VAR_POSITIONAL:
+            elif parameter.kind is _ParameterKind.VAR_POSITIONAL:
                 if isinstance(field, abc.Iterator):
                     # we don't want to exhaust iterator
                     yield '...'
                 else:
                     yield from map(to_positional_argument_string, field)
-            elif parameter.kind is inspect._KEYWORD_ONLY:
+            elif parameter.kind is _ParameterKind.KEYWORD_ONLY:
                 yield to_keyword_argument_string(parameter_name, field)
             else:
                 yield from map(to_keyword_argument_string,
