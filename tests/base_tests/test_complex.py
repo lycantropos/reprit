@@ -12,24 +12,29 @@ from tests import strategies
 from tests.utils import Domain
 
 
-@given(strategies.complex_classes, strategies.booleans)
+@given(strategies.complex_classes, strategies.booleans, strategies.booleans)
 def test_basic(class_: Type[Domain],
-               prefer_keyword: bool) -> None:
+               prefer_keyword: bool,
+               with_module_name: bool) -> None:
     result = generate_repr(class_.__init__,
                            field_seeker=seekers.complex_,
-                           prefer_keyword=prefer_keyword)
+                           prefer_keyword=prefer_keyword,
+                           with_module_name=with_module_name)
 
     assert callable(result)
 
 
-@given(strategies.complex_classes_with_instances, strategies.booleans)
+@given(strategies.complex_classes_with_instances, strategies.booleans,
+       strategies.booleans)
 def test_call(class_with_instance: Tuple[Type[Domain], Domain],
-              prefer_keyword: bool) -> None:
+              prefer_keyword: bool,
+              with_module_name: bool) -> None:
     cls, instance = class_with_instance
 
     repr_ = generate_repr(cls.__init__,
                           field_seeker=seekers.complex_,
-                          prefer_keyword=prefer_keyword)
+                          prefer_keyword=prefer_keyword,
+                          with_module_name=with_module_name)
 
     result = repr_(instance)
 
@@ -66,3 +71,19 @@ def test_unsupported(class_with_instance: Tuple[Type[Domain], Domain],
 
     with pytest.raises(AttributeError):
         repr_(instance)
+
+
+@given(strategies.complex_classes_with_instances, strategies.booleans)
+def test_with_module_name(class_with_instance: Tuple[Type[Domain],
+                                                     Domain],
+                          prefer_keyword: bool) -> None:
+    cls, instance = class_with_instance
+
+    repr_ = generate_repr(cls.__init__,
+                          field_seeker=seekers.complex_,
+                          prefer_keyword=prefer_keyword,
+                          with_module_name=True)
+
+    result = repr_(instance)
+
+    assert result.startswith(cls.__module__)
