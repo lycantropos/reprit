@@ -171,11 +171,11 @@ request.
 Plain:
 - with `CPython`
   ```bash
-  python setup.py test
+  pytest
   ```
 - with `PyPy`
   ```bash
-  pypy setup.py test
+  pytest
   ```
 
 Inside `Docker` container:
