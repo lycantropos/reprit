@@ -168,6 +168,16 @@ request.
 
 ### Running tests
 
+Install dependencies:
+- with `CPython`
+  ```bash
+  python -m pip install --force-reinstall -r requirements-tests.txt
+  ```
+- with `PyPy`
+  ```bash
+  pypy -m pip install --force-reinstall -r requirements-tests.txt
+  ```
+
 Plain:
 ```bash
 pytest
