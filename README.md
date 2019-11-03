@@ -169,14 +169,9 @@ request.
 ### Running tests
 
 Plain:
-- with `CPython`
-  ```bash
-  pytest
-  ```
-- with `PyPy`
-  ```bash
-  pytest
-  ```
+```bash
+pytest
+```
 
 Inside `Docker` container:
 - with `CPython`
