@@ -12,19 +12,15 @@ from .factories import (to_classes,
                         to_initializers,
                         to_instances)
 from .literals import identifiers
-from .literals.base import (complex_class_field_name_factories,
+from .literals.base import (alike_parameters_counts,
+                            complex_class_field_name_factories,
                             objects,
-                            parameters_counts,
                             simple_class_field_name_factories)
 
 simple_classes_methods = strategies.fixed_dictionaries(
         {'__init__': to_initializers(
                 parameters_names=identifiers.snake_case,
-                field_name_factories=simple_class_field_name_factories,
-                positionals_or_keywords_counts=parameters_counts,
-                variadic_positional_flags=strategies.booleans(),
-                keywords_only_counts=parameters_counts,
-                variadic_keyword_flags=strategies.booleans())})
+                field_name_factories=simple_class_field_name_factories)})
 simple_classes = to_classes(names=identifiers.pascal_case,
                             bases=strategies.tuples(),
                             namespaces=simple_classes_methods)
@@ -36,11 +32,7 @@ complex_classes_methods = strategies.fixed_dictionaries(
                 # with underscored attributes
                 # like ``b``, ``_b``, ``b_`` and so on
                 parameters_names_unique_by=to_alphanumeric_characters,
-                field_name_factories=complex_class_field_name_factories,
-                positionals_or_keywords_counts=parameters_counts,
-                variadic_positional_flags=strategies.booleans(),
-                keywords_only_counts=parameters_counts,
-                variadic_keyword_flags=strategies.booleans())})
+                field_name_factories=complex_class_field_name_factories)})
 complex_classes = to_classes(names=identifiers.pascal_case,
                              bases=strategies.tuples(),
                              namespaces=complex_classes_methods)
@@ -57,11 +49,12 @@ unsupported_complex_classes = strategies.just(Unsupported)
 
 def to_classes_with_instances(cls: Type[Domain]
                               ) -> Strategy[Tuple[Type[Domain], Domain]]:
-    instances = to_instances(cls=cls,
-                             values={Any: objects},
-                             variadic_positionals_counts=parameters_counts,
-                             variadic_keywords_names=identifiers.snake_case,
-                             variadic_keywords_counts=parameters_counts)
+    instances = to_instances(
+            cls=cls,
+            values={Any: objects},
+            variadic_positionals_counts=alike_parameters_counts,
+            variadic_keywords_names=identifiers.snake_case,
+            variadic_keywords_counts=alike_parameters_counts)
     return strategies.tuples(strategies.just(cls), instances)
 
 
