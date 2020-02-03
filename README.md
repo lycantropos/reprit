@@ -2,7 +2,7 @@ reprit
 ======
 
 [![](https://travis-ci.com/lycantropos/reprit.svg?branch=master)](https://travis-ci.com/lycantropos/reprit "Travis CI")
-[![](https://dev.azure.com/lycantropos/reprit/_apis/build/status/lycantropos.reprit?branchName=master)](https://dev.azure.com/lycantropos/reprit/_build/latest?branchName=master "Azure Pipelines")
+[![](https://dev.azure.com/lycantropos/reprit/_apis/build/status/lycantropos.reprit?branchName=master)](https://dev.azure.com/lycantropos/reprit/_build/latest?definitionId=13&branchName=master "Azure Pipelines")
 [![](https://codecov.io/gh/lycantropos/reprit/branch/master/graph/badge.svg)](https://codecov.io/gh/lycantropos/reprit "Codecov")
 [![](https://img.shields.io/github/license/lycantropos/reprit.svg)](https://github.com/lycantropos/reprit/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/reprit.svg)](https://badge.fury.io/py/reprit "PyPI")
