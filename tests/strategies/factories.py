@@ -36,6 +36,7 @@ def to_classes(*,
 
 
 SELF_PARAMETER_NAME = 'self'
+PRE_PYTHON_3_8 = sys.version_info < (3, 8)
 
 
 def to_initializers(*,
@@ -44,8 +45,7 @@ def to_initializers(*,
                     field_name_factories: Strategy[Operator[str]]
                     ) -> Strategy[Initializer]:
     parameters_names_lists = strategies.lists(
-            parameters_names.filter(partial(ne,
-                                            SELF_PARAMETER_NAME)),
+            parameters_names.filter(partial(ne, SELF_PARAMETER_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
             unique_by=parameters_names_unique_by)
     signature_data = parameters_names_lists.flatmap(_to_signature_data)
@@ -60,17 +60,15 @@ def _to_signature_data(names: List[str]
         parameters_counters = strategies.builds(OrderedDict)
     elif len(names) == 1:
         kinds = set(inspect._ParameterKind)
-        if sys.version_info < (3, 8):
+        if PRE_PYTHON_3_8:
             kinds -= {inspect._POSITIONAL_ONLY}
         parameters_counters = strategies.sampled_from([OrderedDict([(kind, 1)])
                                                        for kind in kinds])
     else:
-        max_counts = (len(names) - 2) // (2
-                                          if sys.version_info < (3, 8)
-                                          else 3)
+        max_counts = (len(names) - 2) // (2 if PRE_PYTHON_3_8 else 3)
         counts = strategies.integers(0, max_counts)
         variants = OrderedDict()
-        if sys.version_info >= (3, 8):
+        if not PRE_PYTHON_3_8:
             variants[inspect._POSITIONAL_ONLY] = counts
         variants[inspect._POSITIONAL_OR_KEYWORD] = counts
         variants[inspect._VAR_POSITIONAL] = strategies.booleans()
@@ -89,15 +87,19 @@ def _to_signature_data(names: List[str]
 
 
 def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
-                    field_name_factory):
+                    field_name_factory: Operator[str],
+                    module_factory: Callable[..., ast.Module] =
+                    ast.Module if PRE_PYTHON_3_8
+                    # Python3.8 adds `type_ignores` parameter
+                    else partial(ast.Module, type_ignores=[])) -> Initializer:
+    def to_parameters(names: List[str]) -> List[ast.arg]:
+        return [to_parameter(name) for name in names]
+
     def to_parameter(name: str) -> ast.arg:
         return ast.arg(name, None)
 
-    positionals_or_keywords_nodes = (
-            [ast.arg(SELF_PARAMETER_NAME, None)]
-            + [to_parameter(name)
-               for name in signature_data.get(inspect._POSITIONAL_OR_KEYWORD,
-                                              [])])
+    positionals_or_keywords_nodes = to_parameters(
+            signature_data.get(inspect._POSITIONAL_OR_KEYWORD, []))
     if inspect._VAR_POSITIONAL in signature_data:
         variadic_positional_name, = signature_data[inspect._VAR_POSITIONAL]
         variadic_positional_node = to_parameter(variadic_positional_name)
@@ -105,8 +107,7 @@ def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
         variadic_positional_node = None
     keyword_only_parameters_names = signature_data.get(inspect._KEYWORD_ONLY,
                                                        [])
-    keywords_only_nodes = [to_parameter(name)
-                           for name in keyword_only_parameters_names]
+    keywords_only_nodes = to_parameters(keyword_only_parameters_names)
     if inspect._VAR_KEYWORD in signature_data:
         variadic_keyword_name, = signature_data[inspect._VAR_KEYWORD]
         variadic_keyword_node = to_parameter(variadic_keyword_name)
@@ -115,12 +116,32 @@ def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
     positionals_or_keywords_defaults = []
     keywords_only_defaults = list(repeat(None,
                                          len(keyword_only_parameters_names)))
-    signature = ast.arguments(positionals_or_keywords_nodes,
-                              variadic_positional_node,
-                              keywords_only_nodes,
-                              keywords_only_defaults,
-                              variadic_keyword_node,
-                              positionals_or_keywords_defaults)
+    if PRE_PYTHON_3_8:
+        signature = ast.arguments([ast.arg(SELF_PARAMETER_NAME, None)]
+                                  + positionals_or_keywords_nodes,
+                                  variadic_positional_node,
+                                  keywords_only_nodes,
+                                  keywords_only_defaults,
+                                  variadic_keyword_node,
+                                  positionals_or_keywords_defaults)
+    else:
+        if inspect._POSITIONAL_ONLY in signature_data:
+            positionals_only_nodes = (
+                    [ast.arg(SELF_PARAMETER_NAME, None)]
+                    + to_parameters(signature_data[inspect._POSITIONAL_ONLY]))
+        else:
+            positionals_or_keywords_nodes = (
+                    [ast.arg(SELF_PARAMETER_NAME, None)]
+                    + positionals_or_keywords_nodes)
+            positionals_only_nodes = []
+        signature = ast.arguments(positionals_only_nodes,
+                                  positionals_or_keywords_nodes,
+                                  variadic_positional_node,
+                                  keywords_only_nodes,
+                                  keywords_only_defaults,
+                                  variadic_keyword_node,
+                                  positionals_or_keywords_defaults)
+
     if signature_data:
         body = [ast.Assign([ast.Attribute(ast.Name(SELF_PARAMETER_NAME,
                                                    ast.Load()),
@@ -134,7 +155,7 @@ def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
         body = [ast.Pass()]
     name = '__init__'
     function_node = ast.FunctionDef(name, signature, body, [], None)
-    tree = ast.fix_missing_locations(ast.Module([function_node]))
+    tree = ast.fix_missing_locations(module_factory([function_node]))
     code = compile(tree, '<ast>', 'exec')
     namespace = {}
     exec(code, namespace)
