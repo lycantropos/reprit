@@ -9,7 +9,7 @@ from hypothesis import (Phase,
                         settings)
 from hypothesis.errors import (NoSuchExample,
                                Unsatisfiable)
-from hypothesis.searchstrategy import SearchStrategy
+from hypothesis.strategies import SearchStrategy
 
 Domain = TypeVar('Domain')
 Strategy = SearchStrategy
