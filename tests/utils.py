@@ -1,43 +1,12 @@
 from types import ModuleType
-from typing import (Any,
-                    Dict,
+from typing import (Dict,
                     TypeVar,
                     Union)
 
-from hypothesis import (Phase,
-                        core,
-                        settings)
-from hypothesis.errors import (NoSuchExample,
-                               Unsatisfiable)
 from hypothesis.strategies import SearchStrategy
 
 Domain = TypeVar('Domain')
 Strategy = SearchStrategy
-
-
-def find(strategy: Strategy[Domain]) -> Domain:
-    first_object_list = []
-
-    def condition(object_: Any) -> bool:
-        if first_object_list:
-            return True
-        else:
-            first_object_list.append(object_)
-            return False
-
-    try:
-        return core.find(strategy,
-                         condition,
-                         settings=settings(database=None,
-                                           phases=tuple(set(Phase)
-                                                        - {Phase.shrink})))
-    except (NoSuchExample, Unsatisfiable) as search_error:
-        try:
-            result, = first_object_list
-        except ValueError as unpacking_error:
-            raise unpacking_error from search_error
-        else:
-            return result
 
 
 def to_namespace(object_path: str, object_: Domain
