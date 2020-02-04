@@ -7,12 +7,12 @@ services:
       args:
       - PYTHON_IMAGE=${PYPY_IMAGE_NAME}
       - PYTHON_IMAGE_VERSION=${PYPY_IMAGE_VERSION}
-    image: lycantropos/reprit-pypy:0.1.1
+    image: lycantropos/reprit-pypy:0.2.0
     volumes:
       - ./reprit/:/opt/reprit/reprit/
       - ./tests/:/opt/reprit/tests/
       - ./README.md:/opt/reprit/README.md
       - ./requirements-tests.txt:/opt/reprit/requirements-tests.txt
       - ./setup.py:/opt/reprit/setup.py
-      - ./setup.cfg:/opt/reprit/setup.cfg
+      - ./pytest.ini:/opt/reprit/pytest.ini
     entrypoint: pytest

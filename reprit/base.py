@@ -13,27 +13,30 @@ from .hints import (Constructor,
                     Map)
 
 
-def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
+def generate_repr(method: Union[Constructor, Initializer],
                   *,
                   field_seeker: FieldSeeker = seekers.simple,
                   prefer_keyword: bool = False,
                   with_module_name: bool = False) -> Map[Domain, str]:
     """
-    Generates `__repr__` method based on constructor/initializer parameters.
+    Generates ``__repr__`` method based on constructor/initializer parameters.
 
     We are assuming that no parameters data
     get thrown away during instance creation,
     so we can re-create it after.
 
-    :param constructor_or_initializer: constructor/initializer method
-    which parameters will be used in resulting representation.
-    :param field_seeker: function that re-creates parameter value
-    based on class instance and name.
-    :param prefer_keyword: flag that specifies
-    if positional-or-keyword parameters should be outputted
-    as keyword ones when possible.
-    :param with_module_name: flag that specifies
-    if module name should be added.
+    :param method:
+        constructor/initializer method
+        which parameters will be used in resulting representation.
+    :param field_seeker:
+        function that re-creates parameter value
+        based on class instance and name.
+    :param prefer_keyword:
+        flag that specifies
+        if positional-or-keyword parameters should be outputted
+        as keyword ones when possible.
+    :param with_module_name:
+        flag that specifies if module name should be added.
 
     >>> from reprit.base import generate_repr
     >>> class Person:
@@ -63,8 +66,6 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     ...                              with_module_name=True)
     >>> Student('Kira', 132)
     reprit.base.Student('Kira', 132)
-    >>> Student('Kira', 132)
-    reprit.base.Student('Kira', 132)
     >>> Student('Naomi', 248)
     reprit.base.Student('Naomi', 248)
     >>> from reprit import seekers
@@ -78,6 +79,21 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
     Account(1, balance=0)
     >>> Account(100, balance=-10)
     Account(100, balance=-10)
+    >>> import json
+    >>> class Object:
+    ...     def __init__(self, value):
+    ...         self.value = value
+    ...     @property
+    ...     def serialized(self):
+    ...         return json.dumps(self.value)
+    ...     @classmethod
+    ...     def from_serialized(cls, serialized):
+    ...         return cls(json.loads(serialized))
+    ...     __repr__ = generate_repr(from_serialized)
+    >>> Object.from_serialized('0')
+    Object.from_serialized('0')
+    >>> Object.from_serialized('{"key": "value"}')
+    Object.from_serialized('{"key": "value"}')
     """
     if with_module_name:
         def to_class_name(cls: type) -> str:
@@ -86,13 +102,28 @@ def generate_repr(constructor_or_initializer: Union[Constructor, Initializer],
         def to_class_name(cls: type) -> str:
             return cls.__qualname__
 
-    def __repr__(self: Domain) -> str:
-        return (to_class_name(type(self))
-                + '(' + ', '.join(to_arguments_strings(self)) + ')')
+    unwrapped_method = (method.__func__
+                        if isinstance(method, (classmethod, staticmethod))
+                        else method)
+    method_name = unwrapped_method.__name__
+    parameters = OrderedDict(signature(unwrapped_method).parameters)
 
-    parameters = OrderedDict(signature(constructor_or_initializer).parameters)
-    # remove `cls`/`self`
-    parameters.popitem(0)
+    if method_name in ('__init__', '__new__'):
+        # remove `cls`/`self`
+        parameters.popitem(0)
+
+        def __repr__(self: Domain) -> str:
+            return (to_class_name(type(self))
+                    + '(' + ', '.join(to_arguments_strings(self)) + ')')
+    else:
+        if isinstance(method, classmethod):
+            # remove `cls`
+            parameters.popitem(0)
+
+        def __repr__(self: Domain) -> str:
+            return (to_class_name(type(self)) + '.' + method_name
+                    + '(' + ', '.join(to_arguments_strings(self)) + ')')
+
     variadic_positional = next(
             (parameter
              for parameter in parameters.values()

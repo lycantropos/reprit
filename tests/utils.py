@@ -1,47 +1,33 @@
+from enum import _is_dunder
 from types import ModuleType
-from typing import (Any,
-                    Dict,
+from typing import (Dict,
+                    Tuple,
+                    Type,
                     TypeVar,
                     Union)
 
-from hypothesis import (Phase,
-                        core,
-                        settings)
-from hypothesis.errors import (NoSuchExample,
-                               Unsatisfiable)
-from hypothesis.searchstrategy import SearchStrategy
+from hypothesis.strategies import SearchStrategy
+
+from reprit.hints import (Constructor,
+                          Initializer)
 
 Domain = TypeVar('Domain')
 Strategy = SearchStrategy
+Method = Union[Constructor, Initializer]
+ClassMethodInstance = Tuple[Type[Domain], Method, Domain]
+Namespace = Dict[str, Union[Domain, ModuleType]]
 
 
-def find(strategy: Strategy[Domain]) -> Domain:
-    first_object_list = []
+def is_not_dunder(name: str) -> bool:
+    return not _is_dunder(name)
 
-    def condition(object_: Any) -> bool:
-        if first_object_list:
-            return True
-        else:
-            first_object_list.append(object_)
-            return False
 
-    try:
-        return core.find(strategy,
-                         condition,
-                         settings=settings(database=None,
-                                           phases=tuple(set(Phase)
-                                                        - {Phase.shrink})))
-    except (NoSuchExample, Unsatisfiable) as search_error:
-        try:
-            result, = first_object_list
-        except ValueError as unpacking_error:
-            raise unpacking_error from search_error
-        else:
-            return result
+def identity(value: Domain) -> Domain:
+    return value
 
 
 def to_namespace(object_path: str, object_: Domain
-                 ) -> Dict[str, Union[Domain, ModuleType]]:
+                 ) -> Namespace:
     object_path_parts = object_path.split('.')
     if len(object_path_parts) == 1:
         return {object_path_parts[0]: object_}

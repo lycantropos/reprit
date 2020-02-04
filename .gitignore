@@ -1,18 +1,13 @@
-### IntelliJ
-.idea/
-
 ### Python
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
-
 # Distribution / packaging
 .Python
 build/
+_build/
 develop-eggs/
 dist/
 downloads/
@@ -46,3 +41,6 @@ venv*/
 
 # mypy
 .mypy_cache/
+
+### JetBrains
+.idea/

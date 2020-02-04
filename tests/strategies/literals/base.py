@@ -6,8 +6,7 @@ from typing import (Dict,
 
 from hypothesis import strategies
 
-from tests.configs import (MAX_ITERABLES_SIZE,
-                           MAX_PARAMETERS_COUNT)
+from tests.configs import MAX_ALIKE_PARAMETERS_COUNT
 from .factories import (to_characters,
                         to_dictionaries,
                         to_homogeneous_frozensets,
@@ -53,10 +52,7 @@ objects = (hashables
            | sets
            | to_dictionaries(hashables, deferred_objects))
 
-parameters_counts = strategies.integers(
-        min_value=0,
-        max_value=(min(MAX_ITERABLES_SIZE, MAX_PARAMETERS_COUNT)
-                   // len(inspect._ParameterKind)))
+alike_parameters_counts = strategies.integers(0, MAX_ALIKE_PARAMETERS_COUNT)
 
 simple_class_field_name_factories = strategies.just(lambda name: name)
 complex_class_field_name_factories = (
