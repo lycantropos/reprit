@@ -19,7 +19,7 @@ def generate_repr(method: Union[Constructor, Initializer],
                   prefer_keyword: bool = False,
                   with_module_name: bool = False) -> Map[Domain, str]:
     """
-    Generates `__repr__` method based on constructor/initializer parameters.
+    Generates ``__repr__`` method based on constructor/initializer parameters.
 
     We are assuming that no parameters data
     get thrown away during instance creation,
@@ -66,8 +66,6 @@ def generate_repr(method: Union[Constructor, Initializer],
     ...                              with_module_name=True)
     >>> Student('Kira', 132)
     reprit.base.Student('Kira', 132)
-    >>> Student('Kira', 132)
-    reprit.base.Student('Kira', 132)
     >>> Student('Naomi', 248)
     reprit.base.Student('Naomi', 248)
     >>> from reprit import seekers
@@ -81,6 +79,21 @@ def generate_repr(method: Union[Constructor, Initializer],
     Account(1, balance=0)
     >>> Account(100, balance=-10)
     Account(100, balance=-10)
+    >>> import json
+    >>> class Object:
+    ...     def __init__(self, value):
+    ...         self.value = value
+    ...     @property
+    ...     def serialized(self):
+    ...         return json.dumps(self.value)
+    ...     @classmethod
+    ...     def from_serialized(cls, serialized):
+    ...         return cls(json.loads(serialized))
+    ...     __repr__ = generate_repr(from_serialized)
+    >>> Object.from_serialized('0')
+    Object.from_serialized('0')
+    >>> Object.from_serialized('{"key": "value"}')
+    Object.from_serialized('{"key": "value"}')
     """
     if with_module_name:
         def to_class_name(cls: type) -> str:
