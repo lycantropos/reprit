@@ -93,20 +93,24 @@ def generate_repr(method: Union[Constructor, Initializer],
                         if isinstance(method, (classmethod, staticmethod))
                         else method)
     method_name = unwrapped_method.__name__
+    parameters = OrderedDict(signature(unwrapped_method).parameters)
 
-    if method_name in {'__init__', '__new__'}:
+    if method_name in ('__init__', '__new__'):
+        # remove `cls`/`self`
+        parameters.popitem(0)
+
         def __repr__(self: Domain) -> str:
             return (to_class_name(type(self))
                     + '(' + ', '.join(to_arguments_strings(self)) + ')')
     else:
+        if isinstance(method, classmethod):
+            # remove `cls`
+            parameters.popitem(0)
+
         def __repr__(self: Domain) -> str:
             return (to_class_name(type(self)) + '.' + method_name
                     + '(' + ', '.join(to_arguments_strings(self)) + ')')
 
-    parameters = OrderedDict(signature(unwrapped_method).parameters)
-    if not isinstance(method, staticmethod):
-        # remove `cls`/`self`
-        parameters.popitem(0)
     variadic_positional = next(
             (parameter
              for parameter in parameters.values()
