@@ -1,6 +1,7 @@
 import re
 from functools import partial
 from typing import (Any,
+                    Iterable,
                     Type)
 
 from hypothesis import strategies
@@ -8,11 +9,13 @@ from hypothesis import strategies
 from reprit.hints import Domain
 from tests.utils import (ClassMethodInstance,
                          Method,
-                         Strategy)
-from .factories import (DEFAULT_CONSTRUCTOR_NAME,
-                        INITIALIZER_NAME,
+                         Namespace,
+                         Strategy,
+                         is_not_dunder)
+from .factories import (INITIALIZER_NAME,
                         to_classes,
                         to_constructors_with_initializers,
+                        to_custom_constructors_with_initializers,
                         to_initializers,
                         to_instances)
 from .literals import identifiers
@@ -21,17 +24,24 @@ from .literals.base import (alike_parameters_counts,
                             objects,
                             simple_class_field_name_factories)
 
-simple_classes_methods = (strategies.fixed_dictionaries(
+
+def methods_to_namespace(methods: Iterable[Method]) -> Namespace:
+    return {(method.__func__
+             if isinstance(method, (classmethod, staticmethod))
+             else method).__name__: method for method in methods}
+
+
+simple_classes_namespaces = (strategies.fixed_dictionaries(
         {INITIALIZER_NAME: to_initializers(
                 field_name_factories=simple_class_field_name_factories)})
-                          | to_constructors_with_initializers(
+                             | to_constructors_with_initializers(
                 field_name_factories=simple_class_field_name_factories)
-                          .map(lambda constructor_with_initializer:
-                               dict(zip([DEFAULT_CONSTRUCTOR_NAME,
-                                         INITIALIZER_NAME],
-                                        constructor_with_initializer))))
+                             .map(methods_to_namespace)
+                             | to_custom_constructors_with_initializers(
+                field_name_factories=simple_class_field_name_factories)
+                             .map(methods_to_namespace))
 simple_classes = to_classes(bases=strategies.tuples(),
-                            namespaces=simple_classes_methods)
+                            namespaces=simple_classes_namespaces)
 # prevents names clashes
 # with underscored attributes
 # like ``b``, ``_b``, ``b_`` and so on
@@ -42,10 +52,10 @@ complex_classes_namespaces = (strategies.fixed_dictionaries(
                 field_name_factories=complex_class_field_name_factories)})
                               | to_constructors_with_initializers(
                 field_name_factories=complex_class_field_name_factories)
-                              .map(lambda constructor_with_initializer:
-                                   dict(zip([DEFAULT_CONSTRUCTOR_NAME,
-                                             INITIALIZER_NAME],
-                                            constructor_with_initializer))))
+                              .map(methods_to_namespace)
+                              | to_custom_constructors_with_initializers(
+                field_name_factories=complex_class_field_name_factories)
+                              .map(methods_to_namespace))
 complex_classes = to_classes(bases=strategies.tuples(),
                              namespaces=complex_classes_namespaces)
 
@@ -60,10 +70,20 @@ unsupported_complex_classes = strategies.just(Unsupported)
 
 
 def to_class_methods(cls: Type[Domain]) -> Strategy[Method]:
-    return strategies.sampled_from([cls.__init__]
-                                   + ([]
-                                      if cls.__new__ is object.__new__
-                                      else [cls.__new__]))
+    methods = [cls.__init__]
+    if cls.__new__ is not object.__new__:
+        methods += [cls.__new__]
+    try:
+        custom_constructor = next(content
+                                  for name, content in vars(cls).items()
+                                  if is_not_dunder(name)
+                                  and (isinstance(content, (classmethod,
+                                                            staticmethod))))
+    except StopIteration:
+        pass
+    else:
+        methods.append(custom_constructor)
+    return strategies.sampled_from(methods)
 
 
 simple_classes_methods = simple_classes.flatmap(to_class_methods)

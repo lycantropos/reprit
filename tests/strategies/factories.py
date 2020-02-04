@@ -13,6 +13,7 @@ from typing import (Any,
                     Callable,
                     Dict,
                     List,
+                    Sequence,
                     Tuple,
                     Type)
 
@@ -25,7 +26,8 @@ from reprit.hints import (Constructor,
 from tests.configs import MAX_PARAMETERS_COUNT
 from tests.utils import (Domain,
                          Strategy,
-                         identity)
+                         identity,
+                         is_not_dunder)
 from .literals import identifiers
 from .literals.factories import (to_dictionaries,
                                  to_homogeneous_lists)
@@ -61,9 +63,37 @@ def to_constructors_with_initializers(
                                                  DEFAULT_CONSTRUCTOR_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
             unique_by=parameters_names_unique_by)
-    signature_data = parameters_names_lists.flatmap(_to_signature_data)
+    signatures_data = parameters_names_lists.flatmap(_to_signature_data)
     return strategies.builds(_to_constructor_with_initializer,
-                             signature_data, field_name_factories)
+                             signatures_data, field_name_factories)
+
+
+def to_custom_constructors_with_initializers(
+        *,
+        names: Strategy[str] = identifiers.snake_case.filter(is_not_dunder),
+        parameters_names: Strategy[str] = identifiers.snake_case,
+        parameters_names_unique_by: Map[str, int] = identity,
+        field_name_factories: Strategy[Operator[str]]
+) -> Strategy[Tuple[Constructor, Initializer]]:
+    parameters_names_lists = strategies.lists(
+            parameters_names.filter(lambda name:
+                                    name not in (SELF_PARAMETER_NAME,
+                                                 DEFAULT_CONSTRUCTOR_NAME)),
+            max_size=MAX_PARAMETERS_COUNT,
+            unique_by=parameters_names_unique_by)
+    signatures_data = parameters_names_lists.flatmap(_to_signature_data)
+
+    def to_names_with_signatures_data(signature_data: SignatureData
+                                      ) -> Strategy[Tuple[str, SignatureData]]:
+        used_names = frozenset(chain.from_iterable(signature_data.values()))
+        return strategies.tuples(names.filter(lambda name:
+                                              name not in used_names),
+                                 strategies.just(signature_data))
+
+    names_with_signatures_data = (signatures_data
+                                  .flatmap(to_names_with_signatures_data))
+    return strategies.builds(_to_custom_constructor_with_initializer,
+                             names_with_signatures_data, field_name_factories)
 
 
 def to_initializers(*,
@@ -75,10 +105,9 @@ def to_initializers(*,
             parameters_names.filter(partial(ne, SELF_PARAMETER_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
             unique_by=parameters_names_unique_by)
-    signature_data = parameters_names_lists.flatmap(_to_signature_data)
+    signatures_data = parameters_names_lists.flatmap(_to_signature_data)
     return strategies.builds(_to_initializer,
-                             signature_data,
-                             field_name_factories)
+                             signatures_data, field_name_factories)
 
 
 def _to_signature_data(names: List[str]) -> Strategy[SignatureData]:
@@ -118,10 +147,26 @@ def _to_constructor_with_initializer(signature_data: SignatureData,
             _to_initializer(signature_data, field_name_factory))
 
 
+def _to_custom_constructor_with_initializer(
+        name_with_signature_data: Tuple[str, SignatureData],
+        field_name_factory: Operator[str]) -> Tuple[Constructor, Initializer]:
+    name, signature_data = name_with_signature_data
+    return (_to_custom_constructor(name, signature_data),
+            _to_initializer(signature_data, field_name_factory))
+
+
 def _to_constructor(signature_data: SignatureData) -> Constructor:
     signature = _to_signature(CLASS_PARAMETER_NAME, signature_data)
     body = _to_constructor_body()
     return _compile_function(DEFAULT_CONSTRUCTOR_NAME, signature, body, [])
+
+
+def _to_custom_constructor(name: str,
+                           signature_data: SignatureData) -> Constructor:
+    signature = _to_signature(CLASS_PARAMETER_NAME, signature_data)
+    body = _to_custom_constructor_body(signature_data)
+    decorators = [ast.Name(classmethod.__name__, ast.Load())]
+    return _compile_function(name, signature, body, decorators)
 
 
 def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
@@ -131,20 +176,51 @@ def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
     return _compile_function(INITIALIZER_NAME, signature, body, [])
 
 
-def _to_constructor_body(instance_object_name: str = SELF_PARAMETER_NAME
+def _to_constructor_body(class_parameter_name: str = CLASS_PARAMETER_NAME,
+                         instance_object_name: str = SELF_PARAMETER_NAME
                          ) -> List[ast.stmt]:
     super_call = ast.Call(ast.Name(super.__qualname__, ast.Load()),
                           [ast.Name(type.__qualname__, ast.Load()),
-                           ast.Name(CLASS_PARAMETER_NAME, ast.Load())],
+                           ast.Name(class_parameter_name, ast.Load())],
                           [])
     instance_creation = ast.Call(ast.Attribute(super_call,
                                                DEFAULT_CONSTRUCTOR_NAME,
                                                ast.Load()),
-                                 [ast.Name(CLASS_PARAMETER_NAME, ast.Load())],
+                                 [ast.Name(class_parameter_name, ast.Load())],
                                  [])
     return [ast.Assign([ast.Name(instance_object_name, ast.Store())],
                        instance_creation),
             ast.Return(ast.Name(instance_object_name, ast.Load()))]
+
+
+def _to_custom_constructor_body(
+        signature_data: SignatureData,
+        class_parameter_name: str = CLASS_PARAMETER_NAME,
+        positional_kinds: Sequence[inspect._ParameterKind]
+        = (inspect._POSITIONAL_ONLY,
+           inspect._POSITIONAL_OR_KEYWORD)) -> List[ast.stmt]:
+    positionals_names = chain.from_iterable(signature_data.get(kind, [])
+                                            for kind in positional_kinds)
+    keywords_names = signature_data.get(inspect._KEYWORD_ONLY, [])
+    positional_arguments = [ast.Name(parameter_name, ast.Load())
+                            for parameter_name in positionals_names]
+    if inspect._VAR_POSITIONAL in signature_data:
+        variadic_positional_name, = signature_data[inspect._VAR_POSITIONAL]
+        variadic_positional_node = ast.Starred(ast.Name(
+                variadic_positional_name, ast.Load()),
+                ast.Load())
+        positional_arguments.append(variadic_positional_node)
+    keyword_arguments = [ast.keyword(parameter_name,
+                                     ast.Name(parameter_name, ast.Load()))
+                         for parameter_name in keywords_names]
+    if inspect._VAR_KEYWORD in signature_data:
+        variadic_keyword_name, = signature_data[inspect._VAR_KEYWORD]
+        variadic_keyword_node = ast.keyword(None,
+                                            ast.Name(variadic_keyword_name,
+                                                     ast.Load()))
+        keyword_arguments.append(variadic_keyword_node)
+    return [ast.Return(ast.Call(ast.Name(class_parameter_name, ast.Load()),
+                                positional_arguments, keyword_arguments))]
 
 
 def _to_initializer_body(signature_data: SignatureData,

@@ -1,3 +1,4 @@
+from enum import _is_dunder
 from types import ModuleType
 from typing import (Dict,
                     Tuple,
@@ -14,6 +15,11 @@ Domain = TypeVar('Domain')
 Strategy = SearchStrategy
 Method = Union[Constructor, Initializer]
 ClassMethodInstance = Tuple[Type[Domain], Method, Domain]
+Namespace = Dict[str, Union[Domain, ModuleType]]
+
+
+def is_not_dunder(name: str) -> bool:
+    return not _is_dunder(name)
 
 
 def identity(value: Domain) -> Domain:
@@ -21,7 +27,7 @@ def identity(value: Domain) -> Domain:
 
 
 def to_namespace(object_path: str, object_: Domain
-                 ) -> Dict[str, Union[Domain, ModuleType]]:
+                 ) -> Namespace:
     object_path_parts = object_path.split('.')
     if len(object_path_parts) == 1:
         return {object_path_parts[0]: object_}
