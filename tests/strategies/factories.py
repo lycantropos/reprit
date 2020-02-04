@@ -7,7 +7,8 @@ from itertools import (chain,
                        islice,
                        repeat)
 from operator import ne
-from types import MethodType
+from types import (FunctionType,
+                   MethodType)
 from typing import (Any,
                     Callable,
                     Dict,
@@ -17,31 +18,57 @@ from typing import (Any,
 
 from hypothesis import strategies
 
-from reprit.hints import (Initializer,
+from reprit.hints import (Constructor,
+                          Initializer,
                           Map,
                           Operator)
 from tests.configs import MAX_PARAMETERS_COUNT
 from tests.utils import (Domain,
-                         Strategy)
+                         Strategy,
+                         identity)
+from .literals import identifiers
 from .literals.factories import (to_dictionaries,
                                  to_homogeneous_lists)
 
 
 def to_classes(*,
-               names: Strategy[str],
+               names: Strategy[str] = identifiers.pascal_case,
                bases: Strategy[Tuple[type, ...]],
                namespaces: Strategy[Dict[str, MethodType]]
                ) -> Strategy[Type[Domain]]:
     return strategies.builds(type, names, bases, namespaces)
 
 
+SignatureData = Dict[inspect._ParameterKind, List[str]]
+
+DEFAULT_CONSTRUCTOR_NAME = '__new__'
+INITIALIZER_NAME = '__init__'
 SELF_PARAMETER_NAME = 'self'
+CLASS_PARAMETER_NAME = 'cls'
+
 PRE_PYTHON_3_8 = sys.version_info < (3, 8)
 
 
+def to_constructors_with_initializers(
+        *,
+        parameters_names: Strategy[str] = identifiers.snake_case,
+        parameters_names_unique_by: Map[str, int] = identity,
+        field_name_factories: Strategy[Operator[str]]
+) -> Strategy[Tuple[Constructor, Initializer]]:
+    parameters_names_lists = strategies.lists(
+            parameters_names.filter(lambda name:
+                                    name not in (SELF_PARAMETER_NAME,
+                                                 DEFAULT_CONSTRUCTOR_NAME)),
+            max_size=MAX_PARAMETERS_COUNT,
+            unique_by=parameters_names_unique_by)
+    signature_data = parameters_names_lists.flatmap(_to_signature_data)
+    return strategies.builds(_to_constructor_with_initializer,
+                             signature_data, field_name_factories)
+
+
 def to_initializers(*,
-                    parameters_names: Strategy[str],
-                    parameters_names_unique_by: Map[str, int] = lambda x: x,
+                    parameters_names: Strategy[str] = identifiers.snake_case,
+                    parameters_names_unique_by: Map[str, int] = identity,
                     field_name_factories: Strategy[Operator[str]]
                     ) -> Strategy[Initializer]:
     parameters_names_lists = strategies.lists(
@@ -54,8 +81,7 @@ def to_initializers(*,
                              field_name_factories)
 
 
-def _to_signature_data(names: List[str]
-                       ) -> Strategy[Dict[inspect._ParameterKind, List[str]]]:
+def _to_signature_data(names: List[str]) -> Strategy[SignatureData]:
     if not names:
         parameters_counters = strategies.builds(OrderedDict)
     elif len(names) == 1:
@@ -76,8 +102,7 @@ def _to_signature_data(names: List[str]
         variants[inspect._VAR_KEYWORD] = strategies.booleans()
         parameters_counters = strategies.fixed_dictionaries(variants)
 
-    def select(counter: Dict[inspect._ParameterKind, int]
-               ) -> Dict[inspect._ParameterKind, List[str]]:
+    def select(counter: Dict[inspect._ParameterKind, int]) -> SignatureData:
         names_iterator = iter(names)
         return OrderedDict((kind, list(islice(names_iterator, count)))
                            for kind, count in counter.items()
@@ -86,12 +111,78 @@ def _to_signature_data(names: List[str]
     return parameters_counters.map(select)
 
 
+def _to_constructor_with_initializer(signature_data: SignatureData,
+                                     field_name_factory: Operator[str]
+                                     ) -> Tuple[Constructor, Initializer]:
+    return (_to_constructor(signature_data),
+            _to_initializer(signature_data, field_name_factory))
+
+
+def _to_constructor(signature_data: SignatureData) -> Constructor:
+    signature = _to_signature(CLASS_PARAMETER_NAME, signature_data)
+    body = _to_constructor_body()
+    return _compile_function(DEFAULT_CONSTRUCTOR_NAME, signature, body, [])
+
+
 def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
-                    field_name_factory: Operator[str],
-                    module_factory: Callable[..., ast.Module] =
-                    ast.Module if PRE_PYTHON_3_8
-                    # Python3.8 adds `type_ignores` parameter
-                    else partial(ast.Module, type_ignores=[])) -> Initializer:
+                    field_name_factory: Operator[str]) -> Initializer:
+    signature = _to_signature(SELF_PARAMETER_NAME, signature_data)
+    body = _to_initializer_body(signature_data, field_name_factory)
+    return _compile_function(INITIALIZER_NAME, signature, body, [])
+
+
+def _to_constructor_body(instance_object_name: str = SELF_PARAMETER_NAME
+                         ) -> List[ast.stmt]:
+    super_call = ast.Call(ast.Name(super.__qualname__, ast.Load()),
+                          [ast.Name(type.__qualname__, ast.Load()),
+                           ast.Name(CLASS_PARAMETER_NAME, ast.Load())],
+                          [])
+    instance_creation = ast.Call(ast.Attribute(super_call,
+                                               DEFAULT_CONSTRUCTOR_NAME,
+                                               ast.Load()),
+                                 [ast.Name(CLASS_PARAMETER_NAME, ast.Load())],
+                                 [])
+    return [ast.Assign([ast.Name(instance_object_name, ast.Store())],
+                       instance_creation),
+            ast.Return(ast.Name(instance_object_name, ast.Load()))]
+
+
+def _to_initializer_body(signature_data: SignatureData,
+                         field_name_factory: Operator[str],
+                         instance_object_name: str = SELF_PARAMETER_NAME
+                         ) -> List[ast.stmt]:
+    if signature_data:
+        return [ast.Assign([ast.Attribute(ast.Name(instance_object_name,
+                                                   ast.Load()),
+                                          field_name_factory
+                                          (parameter_name),
+                                          ast.Store())],
+                           ast.Name(parameter_name, ast.Load()))
+                for parameter_name in chain.from_iterable(signature_data
+                                                          .values())]
+    else:
+        return [ast.Pass()]
+
+
+def _compile_function(name: str,
+                      signature: ast.arguments,
+                      body: List[ast.stmt],
+                      decorators: List[ast.Name],
+                      module_factory: Callable[..., ast.Module] =
+                      ast.Module if PRE_PYTHON_3_8
+                      # Python3.8 adds `type_ignores` parameter
+                      else partial(ast.Module, type_ignores=[])
+                      ) -> FunctionType:
+    function_node = ast.FunctionDef(name, signature, body, decorators, None)
+    tree = ast.fix_missing_locations(module_factory([function_node]))
+    code = compile(tree, '<ast>', 'exec')
+    namespace = {}
+    exec(code, namespace)
+    return namespace[name]
+
+
+def _to_signature(first_parameter_name: str,
+                  signature_data: SignatureData) -> ast.arguments:
     def to_parameters(names: List[str]) -> List[ast.arg]:
         return [to_parameter(name) for name in names]
 
@@ -117,49 +208,30 @@ def _to_initializer(signature_data: Dict[inspect._ParameterKind, List[str]],
     keywords_only_defaults = list(repeat(None,
                                          len(keyword_only_parameters_names)))
     if PRE_PYTHON_3_8:
-        signature = ast.arguments([ast.arg(SELF_PARAMETER_NAME, None)]
-                                  + positionals_or_keywords_nodes,
-                                  variadic_positional_node,
-                                  keywords_only_nodes,
-                                  keywords_only_defaults,
-                                  variadic_keyword_node,
-                                  positionals_or_keywords_defaults)
+        return ast.arguments([ast.arg(first_parameter_name, None)]
+                             + positionals_or_keywords_nodes,
+                             variadic_positional_node,
+                             keywords_only_nodes,
+                             keywords_only_defaults,
+                             variadic_keyword_node,
+                             positionals_or_keywords_defaults)
     else:
         if inspect._POSITIONAL_ONLY in signature_data:
             positionals_only_nodes = (
-                    [ast.arg(SELF_PARAMETER_NAME, None)]
+                    [ast.arg(first_parameter_name, None)]
                     + to_parameters(signature_data[inspect._POSITIONAL_ONLY]))
         else:
             positionals_or_keywords_nodes = (
-                    [ast.arg(SELF_PARAMETER_NAME, None)]
+                    [ast.arg(first_parameter_name, None)]
                     + positionals_or_keywords_nodes)
             positionals_only_nodes = []
-        signature = ast.arguments(positionals_only_nodes,
-                                  positionals_or_keywords_nodes,
-                                  variadic_positional_node,
-                                  keywords_only_nodes,
-                                  keywords_only_defaults,
-                                  variadic_keyword_node,
-                                  positionals_or_keywords_defaults)
-
-    if signature_data:
-        body = [ast.Assign([ast.Attribute(ast.Name(SELF_PARAMETER_NAME,
-                                                   ast.Load()),
-                                          field_name_factory
-                                          (parameter_name),
-                                          ast.Store())],
-                           ast.Name(parameter_name, ast.Load()))
-                for parameter_name in chain.from_iterable(signature_data
-                                                          .values())]
-    else:
-        body = [ast.Pass()]
-    name = '__init__'
-    function_node = ast.FunctionDef(name, signature, body, [], None)
-    tree = ast.fix_missing_locations(module_factory([function_node]))
-    code = compile(tree, '<ast>', 'exec')
-    namespace = {}
-    exec(code, namespace)
-    return namespace[name]
+        return ast.arguments(positionals_only_nodes,
+                             positionals_or_keywords_nodes,
+                             variadic_positional_node,
+                             keywords_only_nodes,
+                             keywords_only_defaults,
+                             variadic_keyword_node,
+                             positionals_or_keywords_defaults)
 
 
 def to_instances(cls: Type[Domain],
@@ -190,8 +262,7 @@ def to_method_arguments(draw: Callable[[Strategy[Domain]], Domain],
                         variadic_keywords_names: Strategy[str],
                         variadic_keywords_counts: Strategy[int]
                         ) -> Strategy[Tuple[Tuple[Any, ...], Dict[str, Any]]]:
-    signature = inspect.signature(method)
-    parameters = OrderedDict(signature.parameters)
+    parameters = OrderedDict(inspect.signature(method).parameters)
     parameters.popitem(0)
     positionals = []
     keywords = {}

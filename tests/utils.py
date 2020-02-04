@@ -1,12 +1,23 @@
 from types import ModuleType
 from typing import (Dict,
+                    Tuple,
+                    Type,
                     TypeVar,
                     Union)
 
 from hypothesis.strategies import SearchStrategy
 
+from reprit.hints import (Constructor,
+                          Initializer)
+
 Domain = TypeVar('Domain')
 Strategy = SearchStrategy
+Method = Union[Constructor, Initializer]
+ClassMethodInstance = Tuple[Type[Domain], Method, Domain]
+
+
+def identity(value: Domain) -> Domain:
+    return value
 
 
 def to_namespace(object_path: str, object_: Domain

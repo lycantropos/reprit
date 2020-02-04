@@ -1,7 +1,5 @@
 import platform
 import sys
-from typing import (Tuple,
-                    Type)
 
 import pytest
 from hypothesis import given
@@ -9,14 +7,17 @@ from hypothesis import given
 from reprit import seekers
 from reprit.base import generate_repr
 from tests import strategies
-from tests.utils import Domain, to_namespace
+from tests.utils import (ClassMethodInstance,
+                         Method,
+                         to_namespace)
 
 
-@given(strategies.complex_classes, strategies.booleans, strategies.booleans)
-def test_basic(class_: Type[Domain],
+@given(strategies.complex_classes_methods,
+       strategies.booleans, strategies.booleans)
+def test_basic(method: Method,
                prefer_keyword: bool,
                with_module_name: bool) -> None:
-    result = generate_repr(class_.__init__,
+    result = generate_repr(method,
                            field_seeker=seekers.complex_,
                            prefer_keyword=prefer_keyword,
                            with_module_name=with_module_name)
@@ -24,14 +25,14 @@ def test_basic(class_: Type[Domain],
     assert callable(result)
 
 
-@given(strategies.complex_classes_with_instances, strategies.booleans,
-       strategies.booleans)
-def test_call(class_with_instance: Tuple[Type[Domain], Domain],
+@given(strategies.complex_classes_with_methods_and_instances,
+       strategies.booleans, strategies.booleans)
+def test_call(class_method_instance: ClassMethodInstance,
               prefer_keyword: bool,
               with_module_name: bool) -> None:
-    cls, instance = class_with_instance
+    cls, method, instance = class_method_instance
 
-    repr_ = generate_repr(cls.__init__,
+    repr_ = generate_repr(method,
                           field_seeker=seekers.complex_,
                           prefer_keyword=prefer_keyword,
                           with_module_name=with_module_name)
@@ -44,14 +45,15 @@ def test_call(class_with_instance: Tuple[Type[Domain], Domain],
 @pytest.mark.skipif(platform.python_implementation() == 'PyPy'
                     and sys.version_info > (3, 5, 3),
                     reason='Unreproducible failures on PyPy3.5.3')
-@given(strategies.complex_classes_with_instances, strategies.booleans,
+@given(strategies.complex_classes_with_methods_and_instances,
+       strategies.booleans,
        strategies.booleans)
-def test_evaluation(class_with_instance: Tuple[Type[Domain], Domain],
+def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
                     prefer_keyword: bool,
                     with_module_name: bool) -> None:
-    cls, instance = class_with_instance
+    cls, method, instance = class_with_method_and_instance
 
-    repr_ = generate_repr(cls.__init__,
+    repr_ = generate_repr(method,
                           field_seeker=seekers.complex_,
                           prefer_keyword=prefer_keyword,
                           with_module_name=with_module_name)
@@ -66,13 +68,13 @@ def test_evaluation(class_with_instance: Tuple[Type[Domain], Domain],
     assert vars(instance) == vars(result)
 
 
-@given(strategies.unsupported_complex_classes_with_instances,
+@given(strategies.unsupported_complex_classes_with_methods_and_instances,
        strategies.booleans)
-def test_unsupported(class_with_instance: Tuple[Type[Domain], Domain],
+def test_unsupported(class_with_method_and_instance: ClassMethodInstance,
                      prefer_keyword: bool) -> None:
-    cls, instance = class_with_instance
+    cls, method, instance = class_with_method_and_instance
 
-    repr_ = generate_repr(cls.__init__,
+    repr_ = generate_repr(method,
                           field_seeker=seekers.complex_,
                           prefer_keyword=prefer_keyword)
 
@@ -80,13 +82,13 @@ def test_unsupported(class_with_instance: Tuple[Type[Domain], Domain],
         repr_(instance)
 
 
-@given(strategies.complex_classes_with_instances, strategies.booleans)
-def test_with_module_name(class_with_instance: Tuple[Type[Domain],
-                                                     Domain],
+@given(strategies.complex_classes_with_methods_and_instances,
+       strategies.booleans)
+def test_with_module_name(class_with_method_and_instance: ClassMethodInstance,
                           prefer_keyword: bool) -> None:
-    cls, instance = class_with_instance
+    cls, method, instance = class_with_method_and_instance
 
-    repr_ = generate_repr(cls.__init__,
+    repr_ = generate_repr(method,
                           field_seeker=seekers.complex_,
                           prefer_keyword=prefer_keyword,
                           with_module_name=True)
