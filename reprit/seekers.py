@@ -6,11 +6,11 @@ from .utils import group_by
 simple = getattr
 
 
-# handles avoidance of built-in names clash
-# (like in case with parameter ``id_`` and field ``id``)
+# handles names clash with built-ins
+# (e.g. parameter ``id_`` and field ``id``)
 # and "private" attributes
 # (those with leading single-underscore,
-# like in case with parameter ``value`` and field ``_value``,
+# e.g. parameter ``value`` and field ``_value``,
 # do not confuse with "mangled" ones, ``__value`` in our case)
 # and both
 # (like in case with parameter ``id_`` and field ``_id``)
