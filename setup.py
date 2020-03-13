@@ -7,8 +7,6 @@ import reprit
 
 project_base_url = 'https://github.com/lycantropos/reprit/'
 
-tests_require = Path('requirements-tests.txt').read_text()
-
 setup(name=reprit.__name__,
       packages=find_packages(exclude=('tests', 'tests.*')),
       version=reprit.__version__,
@@ -32,5 +30,4 @@ setup(name=reprit.__name__,
       author_email='azatibrakov@gmail.com',
       url=project_base_url,
       download_url=project_base_url + 'archive/master.zip',
-      python_requires='>=3.5.3',
-      tests_require=tests_require)
+      python_requires='>=3.5.3')
