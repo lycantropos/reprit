@@ -150,7 +150,8 @@ def generate_repr(method: Union[Constructor, Initializer],
                     # we don't want to exhaust iterator
                     yield '...'
                 else:
-                    yield from map(to_positional_argument_string, field)
+                    yield from map(to_positional_argument_string,
+                                   field() if callable(field) else field)
             elif parameter.kind is _ParameterKind.KEYWORD_ONLY:
                 yield to_keyword_argument_string(parameter_name, field)
             else:
