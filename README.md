@@ -1,43 +1,29 @@
 reprit
 ======
 
-[![](https://travis-ci.com/lycantropos/reprit.svg?branch=master)](https://travis-ci.com/lycantropos/reprit "Travis CI")
 [![](https://dev.azure.com/lycantropos/reprit/_apis/build/status/lycantropos.reprit?branchName=master)](https://dev.azure.com/lycantropos/reprit/_build/latest?definitionId=13&branchName=master "Azure Pipelines")
 [![](https://readthedocs.org/projects/reprit/badge/?version=latest)](https://reprit.readthedocs.io/en/latest "Documentation")
 [![](https://codecov.io/gh/lycantropos/reprit/branch/master/graph/badge.svg)](https://codecov.io/gh/lycantropos/reprit "Codecov")
 [![](https://img.shields.io/github/license/lycantropos/reprit.svg)](https://github.com/lycantropos/reprit/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/reprit.svg)](https://badge.fury.io/py/reprit "PyPI")
 
-In what follows
-- `python` is an alias for `python3.5` or any later
-version (`python3.6` and so on),
-- `pypy` is an alias for `pypy3.5` or any later
-version (`pypy3.6` and so on).
+In what follows  `python` is an alias for `python3.5` or `pypy3.5` or any later
+version (`python3.6` and `pypy3.6` and so on).
 
 Installation
 ------------
 
 Install the latest `pip` & `setuptools` packages versions:
-- with `CPython`
-  ```bash
-  python -m pip install --upgrade pip setuptools
-  ```
-- with `PyPy`
-  ```bash
-  pypy -m pip install --upgrade pip setuptools
-  ```
+```bash
+python -m pip install --upgrade pip setuptools
+```
 
 ### User
 
 Download and install the latest stable version from `PyPI` repository:
-- with `CPython`
-  ```bash
-  python -m pip install --upgrade reprit
-  ```
-- with `PyPy`
-  ```bash
-  pypy -m pip install --upgrade reprit
-  ```
+```bash
+python -m pip install --upgrade reprit
+```
 
 ### Developer
 
@@ -48,14 +34,9 @@ cd reprit
 ```
 
 Install:
-- with `CPython`
-  ```bash
-  python setup.py install
-  ```
-- with `PyPy`
-  ```bash
-  pypy setup.py install
-  ```
+```bash
+python setup.py install
+```
 
 Usage
 -----
@@ -164,14 +145,9 @@ This will set version to `major.minor.patch`.
 ### Running tests
 
 Install dependencies:
-- with `CPython`
-  ```bash
-  python -m pip install --force-reinstall -r requirements-tests.txt
-  ```
-- with `PyPy`
-  ```bash
-  pypy -m pip install --force-reinstall -r requirements-tests.txt
-  ```
+```bash
+python -m pip install --force-reinstall -r requirements-tests.txt
+```
 
 Plain:
 ```bash
