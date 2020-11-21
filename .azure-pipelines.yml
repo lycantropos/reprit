@@ -132,10 +132,10 @@ steps:
     condition: and(succeeded(), eq(variables['python.version'], '3.5'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     displayName: 'Build'
   - script: python -m pip install --upgrade twine
-    condition: and(succeeded(), startsWith(variables['python.version'], '3.'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+    condition: and(succeeded(), eq(variables['python.version'], '3.5'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     displayName: 'Install deploy dependencies'
   - script: twine upload --skip-existing dist/*
-    condition: and(succeeded(), startsWith(variables['python.version'], '3.'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+    condition: and(succeeded(), eq(variables['python.version'], '3.5'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     displayName: 'Deploy'
     env:
       TWINE_USERNAME: __token__
