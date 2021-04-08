@@ -6,7 +6,7 @@ from typing import (Any,
 
 from hypothesis import strategies
 
-from reprit.hints import Domain
+from reprit.core.hints import Domain
 from tests.utils import (ClassMethodInstance,
                          Method,
                          Namespace,

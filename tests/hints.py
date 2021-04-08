@@ -1,4 +1,4 @@
-from reprit.hints import (Domain,
-                          Map)
+from reprit.core.hints import (Domain,
+                               Map)
 
 Operator = Map[Domain, Domain]

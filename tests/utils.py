@@ -8,8 +8,8 @@ from typing import (Dict,
 
 from hypothesis.strategies import SearchStrategy
 
-from reprit.hints import (Constructor,
-                          Initializer)
+from reprit.core.hints import (Constructor,
+                               Initializer)
 
 Domain = TypeVar('Domain')
 Strategy = SearchStrategy

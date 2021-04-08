@@ -19,9 +19,9 @@ from typing import (Any,
 
 from hypothesis import strategies
 
-from reprit.hints import (Constructor,
-                          Initializer,
-                          Map)
+from reprit.core.hints import (Constructor,
+                               Initializer,
+                               Map)
 from tests.configs import MAX_PARAMETERS_COUNT
 from tests.hints import Operator
 from tests.utils import (Domain,
