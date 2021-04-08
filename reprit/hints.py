@@ -1,10 +1,6 @@
 from typing import (Any,
-                    Callable,
-                    TypeVar)
+                    Callable)
 
-Domain = TypeVar('Domain')
-Range = TypeVar('Range')
-Map = Callable[[Domain], Range]
-Constructor = Callable[..., Domain]
-Initializer = Callable[..., None]
-FieldSeeker = Callable[[Domain, str], Any]
+from .core.hints import Domain as _Domain
+
+FieldSeeker = Callable[[_Domain, str], Any]

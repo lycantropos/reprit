@@ -7,11 +7,11 @@ from typing import (Iterable as _Iterable,
                     Union as _Union)
 
 from . import seekers as _seekers
-from .hints import (Constructor as _Constructor,
-                    Domain as _Domain,
-                    FieldSeeker as _FieldSeeker,
-                    Initializer as _Initializer,
-                    Map as _Map)
+from .core.hints import (Constructor as _Constructor,
+                         Domain as _Domain,
+                         Initializer as _Initializer,
+                         Map as _Map)
+from .hints import FieldSeeker as _FieldSeeker
 
 
 def generate_repr(method: _Union[_Constructor, _Initializer],
