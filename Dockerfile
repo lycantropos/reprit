@@ -1,17 +1,20 @@
-ARG PYTHON_IMAGE
-ARG PYTHON_IMAGE_VERSION
+ARG IMAGE_NAME
+ARG IMAGE_VERSION
 
-FROM ${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+FROM ${IMAGE_NAME}:${IMAGE_VERSION}
 
 RUN pip install --upgrade pip setuptools
 
 WORKDIR /opt/reprit
 
-COPY reprit/ reprit/
-COPY tests/ tests/
-COPY README.md .
-COPY requirements-tests.txt .
-COPY setup.py .
-COPY pytest.ini .
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-RUN pip install --force-reinstall -r requirements-tests.txt
+COPY requirements-tests.txt .
+RUN pip install -r requirements-tests.txt
+
+COPY README.md .
+COPY pytest.ini .
+COPY setup.py .
+COPY reprit reprit
+COPY tests tests
