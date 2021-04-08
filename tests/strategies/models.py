@@ -31,31 +31,33 @@ def methods_to_namespace(methods: Iterable[Method]) -> Namespace:
              else method).__name__: method for method in methods}
 
 
-simple_classes_namespaces = (strategies.fixed_dictionaries(
-        {INITIALIZER_NAME: to_initializers(
-                field_name_factories=simple_class_field_name_factories)})
-                             | to_constructors_with_initializers(
-                field_name_factories=simple_class_field_name_factories)
-                             .map(methods_to_namespace)
-                             | to_custom_constructors_with_initializers(
-                field_name_factories=simple_class_field_name_factories)
-                             .map(methods_to_namespace))
+simple_classes_namespaces = (
+        strategies.fixed_dictionaries({
+            INITIALIZER_NAME: to_initializers(
+                    field_name_factories=simple_class_field_name_factories)})
+        | (((to_constructors_with_initializers
+             (field_name_factories=simple_class_field_name_factories))
+            | (to_custom_constructors_with_initializers
+               (field_name_factories=simple_class_field_name_factories)))
+           .map(methods_to_namespace)))
 simple_classes = to_classes(bases=strategies.tuples(),
                             namespaces=simple_classes_namespaces)
 # prevents names clashes
 # with underscored attributes
 # like ``b``, ``_b``, ``b_`` and so on
 to_alphanumeric_characters = partial(re.compile(r'[^a-zA-Z0-9]').sub, '')
-complex_classes_namespaces = (strategies.fixed_dictionaries(
-        {INITIALIZER_NAME: to_initializers(
-                parameters_names_unique_by=to_alphanumeric_characters,
-                field_name_factories=complex_class_field_name_factories)})
-                              | to_constructors_with_initializers(
-                field_name_factories=complex_class_field_name_factories)
-                              .map(methods_to_namespace)
-                              | to_custom_constructors_with_initializers(
-                field_name_factories=complex_class_field_name_factories)
-                              .map(methods_to_namespace))
+complex_classes_namespaces = (
+        strategies.fixed_dictionaries(
+                {INITIALIZER_NAME: to_initializers(
+                        parameters_names_unique_by
+                        =to_alphanumeric_characters,
+                        field_name_factories
+                        =complex_class_field_name_factories)})
+        | (((to_constructors_with_initializers
+             (field_name_factories=complex_class_field_name_factories))
+            | (to_custom_constructors_with_initializers
+               (field_name_factories=complex_class_field_name_factories)))
+           .map(methods_to_namespace)))
 complex_classes = to_classes(bases=strategies.tuples(),
                              namespaces=complex_classes_namespaces)
 

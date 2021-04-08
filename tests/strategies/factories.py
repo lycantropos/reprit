@@ -106,8 +106,8 @@ def to_initializers(*,
             max_size=MAX_PARAMETERS_COUNT,
             unique_by=parameters_names_unique_by)
     signatures_data = parameters_names_lists.flatmap(_to_signature_data)
-    return strategies.builds(_to_initializer,
-                             signatures_data, field_name_factories)
+    return strategies.builds(_to_initializer, signatures_data,
+                             field_name_factories)
 
 
 def _to_signature_data(names: List[str]) -> Strategy[SignatureData]:
