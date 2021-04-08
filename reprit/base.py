@@ -2,6 +2,7 @@ from collections import (OrderedDict,
                          abc)
 from inspect import (_ParameterKind,
                      signature as _signature)
+from types import MethodType as _MethodType
 from typing import (Iterable as _Iterable,
                     Union as _Union)
 
@@ -138,6 +139,8 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                 or not field_seeker(object_, variadic_positional.name))
         for parameter_name, parameter in parameters.items():
             field = field_seeker(object_, parameter_name)
+            if isinstance(field, _MethodType):
+                field = field()
             if parameter.kind is _ParameterKind.POSITIONAL_ONLY:
                 yield to_positional_argument_string(field)
             elif parameter.kind is _ParameterKind.POSITIONAL_OR_KEYWORD:
@@ -148,10 +151,9 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
             elif parameter.kind is _ParameterKind.VAR_POSITIONAL:
                 if isinstance(field, abc.Iterator):
                     # we don't want to exhaust iterator
-                    yield '...'
+                    yield to_positional_argument_string(field)
                 else:
-                    yield from map(to_positional_argument_string,
-                                   field() if callable(field) else field)
+                    yield from map(to_positional_argument_string, field)
             elif parameter.kind is _ParameterKind.KEYWORD_ONLY:
                 yield to_keyword_argument_string(parameter_name, field)
             else:
