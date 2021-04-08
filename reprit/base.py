@@ -148,11 +148,10 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                 else:
                     yield to_positional_argument_string(field)
             elif parameter.kind is _ParameterKind.VAR_POSITIONAL:
-                if isinstance(field, abc.Iterator):
-                    # we don't want to exhaust iterator
-                    yield to_positional_argument_string(field)
-                else:
-                    yield from map(to_positional_argument_string, field)
+                yield from ((to_positional_argument_string(field),)
+                            # we don't want to exhaust iterator
+                            if isinstance(field, abc.Iterator)
+                            else map(to_positional_argument_string, field))
             elif parameter.kind is _ParameterKind.KEYWORD_ONLY:
                 yield to_keyword_argument_string(parameter_name, field)
             else:
