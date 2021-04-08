@@ -9,6 +9,7 @@ from reprit.base import generate_repr
 from tests import strategies
 from tests.utils import (ClassMethodInstance,
                          Method,
+                         are_objects_equivalent,
                          to_namespace)
 
 
@@ -65,7 +66,7 @@ def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
                                else cls.__qualname__,
                                cls))
 
-    assert vars(instance) == vars(result)
+    assert are_objects_equivalent(instance, result)
 
 
 @given(strategies.unsupported_complex_classes_with_methods_and_instances,

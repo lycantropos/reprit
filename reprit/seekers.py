@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Any as _Any
 
-from .hints import Domain
-from .utils import group_by
+from .core.hints import Domain as _Domain
+from .core.utils import group_by as _group_by
 
 simple = getattr
 
@@ -14,7 +14,7 @@ simple = getattr
 # do not confuse with "mangled" ones, ``__value`` in our case)
 # and both
 # (like in case with parameter ``id_`` and field ``_id``)
-def complex_(object_: Domain, parameter_name: str) -> Any:
+def complex_(object_: _Domain, parameter_name: str) -> _Any:
     try:
         return getattr(object_, parameter_name)
     except AttributeError as original_error:
@@ -25,8 +25,8 @@ def complex_(object_: Domain, parameter_name: str) -> Any:
             return abs(len(name) - len(parameter_name))
 
         candidates = filter(is_candidate, dir(object_))
-        key, group = min(group_by(candidates,
-                                  key=grouping_key))
+        key, group = min(_group_by(candidates,
+                                   key=grouping_key))
         try:
             field_name, = group
         except ValueError:

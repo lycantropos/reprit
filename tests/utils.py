@@ -1,6 +1,8 @@
 from enum import _is_dunder
-from types import ModuleType
-from typing import (Dict,
+from types import (MethodType,
+                   ModuleType)
+from typing import (Any,
+                    Dict,
                     Tuple,
                     Type,
                     TypeVar,
@@ -8,14 +10,24 @@ from typing import (Dict,
 
 from hypothesis.strategies import SearchStrategy
 
-from reprit.hints import (Constructor,
-                          Initializer)
+from reprit.core.hints import (Constructor,
+                               Initializer)
 
 Domain = TypeVar('Domain')
 Strategy = SearchStrategy
 Method = Union[Constructor, Initializer]
 ClassMethodInstance = Tuple[Type[Domain], Method, Domain]
 Namespace = Dict[str, Union[Domain, ModuleType]]
+
+
+def are_objects_equivalent(left: Any, right: Any) -> bool:
+    left_dict, right_dict = vars(left), vars(right)
+    return (type(left) is type(right)
+            and left_dict.keys() == right_dict.keys()
+            and all(value() == right_dict[key]()
+                    if isinstance(value, MethodType)
+                    else value == right_dict[key]
+                    for key, value in left_dict.items()))
 
 
 def is_not_dunder(name: str) -> bool:
