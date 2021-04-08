@@ -7,20 +7,20 @@ reprit
 [![](https://img.shields.io/github/license/lycantropos/reprit.svg)](https://github.com/lycantropos/reprit/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/reprit.svg)](https://badge.fury.io/py/reprit "PyPI")
 
-In what follows  `python` is an alias for `python3.5` or `pypy3.5` or any later
-version (`python3.6` and `pypy3.6` and so on).
+In what follows `python` is an alias for `python3.5` or `pypy3.5`
+or any later version (`python3.6`, `pypy3.6` and so on).
 
 Installation
 ------------
 
-Install the latest `pip` & `setuptools` packages versions:
+Install the latest `pip` & `setuptools` packages versions
 ```bash
 python -m pip install --upgrade pip setuptools
 ```
 
 ### User
 
-Download and install the latest stable version from `PyPI` repository:
+Download and install the latest stable version from `PyPI` repository
 ```bash
 python -m pip install --upgrade reprit
 ```
@@ -33,7 +33,7 @@ git clone https://github.com/lycantropos/reprit.git
 cd reprit
 ```
 
-Install:
+Install
 ```bash
 python setup.py install
 ```
@@ -144,12 +144,12 @@ This will set version to `major.minor.patch`.
 
 ### Running tests
 
-Install dependencies:
+Install dependencies
 ```bash
-python -m pip install --force-reinstall -r requirements-tests.txt
+python -m pip install -r requirements-tests.txt
 ```
 
-Plain:
+Plain
 ```bash
 pytest
 ```
