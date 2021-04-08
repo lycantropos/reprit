@@ -8,6 +8,7 @@ from reprit.base import generate_repr
 from tests import strategies
 from tests.utils import (ClassMethodInstance,
                          Method,
+                         are_objects_equivalent,
                          to_namespace)
 
 
@@ -62,7 +63,7 @@ def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
                                else cls.__qualname__,
                                cls))
 
-    assert vars(result) == vars(instance)
+    assert are_objects_equivalent(result, instance)
 
 
 @given(strategies.simple_classes_with_methods_and_instances,
