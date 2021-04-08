@@ -1,23 +1,23 @@
 from collections import (OrderedDict,
                          abc)
 from inspect import (_ParameterKind,
-                     signature)
-from typing import (Iterable,
-                    Union)
+                     signature as _signature)
+from typing import (Iterable as _Iterable,
+                    Union as _Union)
 
-from . import seekers
-from .hints import (Constructor,
-                    Domain,
-                    FieldSeeker,
-                    Initializer,
-                    Map)
+from . import seekers as _seekers
+from .hints import (Constructor as _Constructor,
+                    Domain as _Domain,
+                    FieldSeeker as _FieldSeeker,
+                    Initializer as _Initializer,
+                    Map as _Map)
 
 
-def generate_repr(method: Union[Constructor, Initializer],
+def generate_repr(method: _Union[_Constructor, _Initializer],
                   *,
-                  field_seeker: FieldSeeker = seekers.simple,
+                  field_seeker: _FieldSeeker = _seekers.simple,
                   prefer_keyword: bool = False,
-                  with_module_name: bool = False) -> Map[Domain, str]:
+                  with_module_name: bool = False) -> _Map[_Domain, str]:
     """
     Generates ``__repr__`` method based on constructor/initializer parameters.
 
@@ -106,13 +106,13 @@ def generate_repr(method: Union[Constructor, Initializer],
                         if isinstance(method, (classmethod, staticmethod))
                         else method)
     method_name = unwrapped_method.__name__
-    parameters = OrderedDict(signature(unwrapped_method).parameters)
+    parameters = OrderedDict(_signature(unwrapped_method).parameters)
 
     if method_name in ('__init__', '__new__'):
         # remove `cls`/`self`
         parameters.popitem(0)
 
-        def __repr__(self: Domain) -> str:
+        def __repr__(self: _Domain) -> str:
             return (to_class_name(type(self))
                     + '(' + ', '.join(to_arguments_strings(self)) + ')')
     else:
@@ -120,7 +120,7 @@ def generate_repr(method: Union[Constructor, Initializer],
             # remove `cls`
             parameters.popitem(0)
 
-        def __repr__(self: Domain) -> str:
+        def __repr__(self: _Domain) -> str:
             return (to_class_name(type(self)) + '.' + method_name
                     + '(' + ', '.join(to_arguments_strings(self)) + ')')
 
@@ -132,7 +132,7 @@ def generate_repr(method: Union[Constructor, Initializer],
     to_positional_argument_string = repr
     to_keyword_argument_string = '{}={!r}'.format
 
-    def to_arguments_strings(object_: Domain) -> Iterable[str]:
+    def to_arguments_strings(object_: _Domain) -> _Iterable[str]:
         variadic_positional_unset = (
                 variadic_positional is None
                 or not field_seeker(object_, variadic_positional.name))
