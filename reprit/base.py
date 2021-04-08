@@ -84,7 +84,6 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
     >>> class Object:
     ...     def __init__(self, value):
     ...         self.value = value
-    ...     @property
     ...     def serialized(self):
     ...         return json.dumps(self.value)
     ...     @classmethod
