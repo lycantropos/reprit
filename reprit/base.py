@@ -138,7 +138,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                 or not field_seeker(object_, variadic_positional.name))
         for parameter_name, parameter in parameters.items():
             field = field_seeker(object_, parameter_name)
-            if isinstance(field, _MethodType):
+            if isinstance(field, _MethodType) and field.__self__ is object_:
                 field = field()
             if parameter.kind is _ParameterKind.POSITIONAL_ONLY:
                 yield to_positional_argument_string(field)
