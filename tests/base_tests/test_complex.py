@@ -13,8 +13,8 @@ from tests.utils import (ClassMethodInstance,
                          to_namespace)
 
 
-@given(strategies.complex_classes_methods,
-       strategies.booleans, strategies.booleans)
+@given(strategies.complex_classes_methods, strategies.booleans,
+       strategies.booleans)
 def test_basic(method: Method,
                prefer_keyword: bool,
                with_module_name: bool) -> None:
@@ -47,8 +47,7 @@ def test_call(class_method_instance: ClassMethodInstance,
                     and sys.version_info > (3, 5, 3),
                     reason='Unreproducible failures on PyPy3.5.3')
 @given(strategies.complex_classes_with_methods_and_instances,
-       strategies.booleans,
-       strategies.booleans)
+       strategies.booleans, strategies.booleans)
 def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
                     prefer_keyword: bool,
                     with_module_name: bool) -> None:
