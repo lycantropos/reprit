@@ -8,6 +8,10 @@ from types import (BuiltinFunctionType as _BuiltinFunctionType,
 from typing import Any as _Any
 
 try:
+    from types import ClassMethodDescriptorType as _ClassMethodDescriptorType
+except ImportError:
+    _ClassMethodDescriptorType = type(dict.__dict__['fromkeys'])
+try:
     from types import MethodDescriptorType as _MethodDescriptorType
 except ImportError:
     _MethodDescriptorType = type(str.join)
@@ -15,6 +19,10 @@ try:
     from types import MethodWrapperType as _MethodWrapperType
 except ImportError:
     _MethodWrapperType = type(object().__str__)
+try:
+    from types import WrapperDescriptorType as _WrapperDescriptorType
+except ImportError:
+    _WrapperDescriptorType = type(object.__init__)
 
 simple = repr
 
@@ -26,8 +34,10 @@ def complex_(object_: _Any) -> str:
         return '{}.{}'.format(object_.__module__, object_.__qualname__)
     elif isinstance(object_, (_BuiltinMethodType, _MethodType)):
         return '{}.{}'.format(complex_(object_.__self__), object_.__name__)
-    elif isinstance(object_, (_GetSetDescriptorType, _MemberDescriptorType,
-                              _MethodDescriptorType, _MethodWrapperType)):
+    elif isinstance(object_, (_ClassMethodDescriptorType,
+                              _GetSetDescriptorType, _MemberDescriptorType,
+                              _MethodDescriptorType, _MethodWrapperType,
+                              _WrapperDescriptorType)):
         return '{}.{}'.format(complex_(object_.__objclass__), object_.__name__)
     else:
         return repr(object_)
