@@ -6,16 +6,20 @@ from types import MethodType as _MethodType
 from typing import (Iterable as _Iterable,
                     Union as _Union)
 
-from . import seekers as _seekers
+from . import (seekers as _seekers,
+               serializers as _serializers)
 from .core.hints import (Constructor as _Constructor,
                          Domain as _Domain,
                          Initializer as _Initializer,
                          Map as _Map)
-from .hints import FieldSeeker as _FieldSeeker
+from .hints import (ArgumentSerializer as _ArgumentSerializer,
+                    FieldSeeker as _FieldSeeker)
 
 
 def generate_repr(method: _Union[_Constructor, _Initializer],
                   *,
+                  argument_serializer: _ArgumentSerializer
+                  = _serializers.simple,
                   field_seeker: _FieldSeeker = _seekers.simple,
                   prefer_keyword: bool = False,
                   with_module_name: bool = False) -> _Map[_Domain, str]:
@@ -29,6 +33,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
     :param method:
         constructor/initializer method
         which parameters will be used in resulting representation.
+    :param argument_serializer: function that serializes argument to string.
     :param field_seeker:
         function that re-creates parameter value
         based on class instance and name.
@@ -129,8 +134,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
              for parameter in parameters.values()
              if parameter.kind is _ParameterKind.VAR_POSITIONAL),
             None)
-    to_positional_argument_string = repr
-    to_keyword_argument_string = '{}={!r}'.format
+    to_keyword_argument_string = '{}={}'.format
 
     def to_arguments_strings(object_: _Domain) -> _Iterable[str]:
         variadic_positional_unset = (
@@ -141,21 +145,22 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
             if isinstance(field, _MethodType) and field.__self__ is object_:
                 field = field()
             if parameter.kind is _ParameterKind.POSITIONAL_ONLY:
-                yield to_positional_argument_string(field)
+                yield argument_serializer(field)
             elif parameter.kind is _ParameterKind.POSITIONAL_OR_KEYWORD:
-                if prefer_keyword and variadic_positional_unset:
-                    yield to_keyword_argument_string(parameter_name, field)
-                else:
-                    yield to_positional_argument_string(field)
+                yield (to_keyword_argument_string(parameter_name,
+                                                  argument_serializer(field))
+                       if prefer_keyword and variadic_positional_unset
+                       else argument_serializer(field))
             elif parameter.kind is _ParameterKind.VAR_POSITIONAL:
-                yield from ((to_positional_argument_string(field),)
+                yield from ((argument_serializer(field),)
                             # we don't want to exhaust iterator
                             if isinstance(field, abc.Iterator)
-                            else map(to_positional_argument_string, field))
+                            else map(argument_serializer, field))
             elif parameter.kind is _ParameterKind.KEYWORD_ONLY:
-                yield to_keyword_argument_string(parameter_name, field)
+                yield to_keyword_argument_string(parameter_name,
+                                                 argument_serializer(field))
             else:
-                yield from map(to_keyword_argument_string,
-                               field.keys(), field.values())
+                yield from map(to_keyword_argument_string, field.keys(),
+                               map(argument_serializer, field.values()))
 
     return __repr__

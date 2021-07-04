@@ -1,5 +1,6 @@
 from .literals.base import booleans
-from .models import (complex_classes,
+from .models import (argument_serializers,
+                     complex_classes,
                      complex_classes_methods,
                      complex_classes_with_methods_and_instances,
                      simple_classes,
