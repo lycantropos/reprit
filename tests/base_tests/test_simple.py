@@ -75,7 +75,7 @@ def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
 
 
 @given(strategies.simple_classes_with_methods_and_instances,
-       strategies.booleans)
+       strategies.argument_serializers, strategies.booleans)
 def test_with_module_name(class_with_method_and_instance: ClassMethodInstance,
                           argument_serializer: ArgumentSerializer,
                           prefer_keyword: bool) -> None:
