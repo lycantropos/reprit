@@ -67,7 +67,6 @@ def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
                           prefer_keyword=prefer_keyword,
                           with_module_name=with_module_name)
     instance_repr = repr_(instance)
-    print(instance_repr)
 
     result = eval(instance_repr,
                   {**to_namespace(cls.__module__ + '.' + cls.__qualname__
