@@ -1,12 +1,16 @@
+import builtins
 import inspect
 from types import ModuleType
-from typing import (Dict,
+from typing import (Any,
+                    Dict,
                     List,
                     Union)
 
 from hypothesis import strategies
 
+from reprit import serializers
 from tests.configs import MAX_ALIKE_PARAMETERS_COUNT
+from tests.utils import flatten
 from .factories import (to_characters,
                         to_dictionaries,
                         to_homogeneous_frozensets,
@@ -47,13 +51,34 @@ hashables = (scalars
 iterables = (strings
              | to_homogeneous_sequences(deferred_objects))
 sets = to_homogeneous_sets(hashables)
-objects = (hashables
-           | iterables
-           | sets
-           | to_dictionaries(hashables, deferred_objects))
+built_ins = vars(builtins).values()
+built_in_callables = list(filter(callable, built_ins))
+built_in_classes = [callable_
+                    for callable_ in built_in_callables
+                    if isinstance(callable_, type)]
+built_in_classes_fields = list(flatten(vars(class_).values()
+                                       for class_ in built_in_classes))
 
+
+def round_trippable_built_in(object_: Any) -> bool:
+    try:
+        candidate = eval(serializers.complex_(object_),
+                         {builtins.__name__: builtins})
+    except Exception:
+        return False
+    else:
+        return candidate is object_
+
+
+objects = (
+        hashables
+        | iterables
+        | sets
+        | to_dictionaries(hashables, deferred_objects)
+        | (strategies.sampled_from(built_in_callables
+                                   + built_in_classes_fields)
+           .filter(round_trippable_built_in)))
 alike_parameters_counts = strategies.integers(0, MAX_ALIKE_PARAMETERS_COUNT)
-
 simple_class_field_name_factories = strategies.just(lambda name: name)
 complex_class_field_name_factories = (
         simple_class_field_name_factories

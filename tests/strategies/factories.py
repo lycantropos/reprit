@@ -4,8 +4,7 @@ import sys
 import types
 from collections import OrderedDict
 from functools import partial
-from itertools import (chain,
-                       islice,
+from itertools import (islice,
                        product,
                        repeat)
 from operator import (itemgetter,
@@ -29,13 +28,13 @@ from tests.configs import MAX_PARAMETERS_COUNT
 from tests.hints import Operator
 from tests.utils import (Domain,
                          Strategy,
+                         flatten,
                          identity,
                          is_not_dunder)
 from .literals import identifiers
 from .literals.factories import (to_dictionaries,
                                  to_homogeneous_lists)
 
-flatten = chain.from_iterable
 booleans = strategies.booleans()
 
 

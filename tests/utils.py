@@ -1,4 +1,5 @@
 from enum import _is_dunder
+from itertools import chain
 from types import (MethodType,
                    ModuleType)
 from typing import (Any,
@@ -30,6 +31,9 @@ def are_objects_equivalent(left: Any, right: Any) -> bool:
                     for key, value in left_dict.items()))
 
 
+flatten = chain.from_iterable
+
+
 def is_not_dunder(name: str) -> bool:
     return not _is_dunder(name)
 
@@ -38,8 +42,7 @@ def identity(value: Domain) -> Domain:
     return value
 
 
-def to_namespace(object_path: str, object_: Domain
-                 ) -> Namespace:
+def to_namespace(object_path: str, object_: Domain) -> Namespace:
     object_path_parts = object_path.split('.')
     if len(object_path_parts) == 1:
         return {object_path_parts[0]: object_}

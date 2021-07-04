@@ -6,6 +6,7 @@ from typing import (Any,
 
 from hypothesis import strategies
 
+from reprit import serializers
 from reprit.core.hints import Domain
 from tests.utils import (ClassMethodInstance,
                          Method,
@@ -110,3 +111,5 @@ complex_classes_with_methods_and_instances = (
     complex_classes.flatmap(to_classes_with_methods_and_instances))
 unsupported_complex_classes_with_methods_and_instances = (
     unsupported_complex_classes.flatmap(to_classes_with_methods_and_instances))
+argument_serializers = strategies.sampled_from([serializers.simple,
+                                                serializers.complex_])
