@@ -70,14 +70,13 @@ def round_trippable_built_in(object_: Any) -> bool:
         return candidate is object_
 
 
-objects = (
-        hashables
-        | iterables
-        | sets
-        | to_dictionaries(hashables, deferred_objects)
-        | (strategies.sampled_from(built_in_callables
-                                   + built_in_classes_fields)
-           .filter(round_trippable_built_in)))
+objects = (hashables
+           | iterables
+           | sets
+           | to_dictionaries(hashables, deferred_objects)
+           | (strategies.sampled_from(built_in_callables
+                                      + built_in_classes_fields)
+              .filter(round_trippable_built_in)))
 alike_parameters_counts = strategies.integers(0, MAX_ALIKE_PARAMETERS_COUNT)
 simple_class_field_name_factories = strategies.just(lambda name: name)
 complex_class_field_name_factories = (
