@@ -91,6 +91,11 @@ def _(object_: list) -> str:
     return '[' + ', '.join(map(complex_, object_)) + ']'
 
 
+@complex_.register(memoryview)
+def _(object_: memoryview) -> str:
+    return complex_(type(object_)) + '(' + complex_(object_.obj) + ')'
+
+
 @complex_.register(tuple)
 def _(object_: tuple) -> str:
     return '(' + ', '.join(map(complex_, object_)) + ')'
