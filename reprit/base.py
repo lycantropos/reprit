@@ -155,7 +155,8 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                     and (variadic_positional_unset
                          or kind is not _ParameterKind.POSITIONAL_OR_KEYWORD)):
                 if (not positional_or_keyword_is_keyword
-                        and kind is _ParameterKind.POSITIONAL_OR_KEYWORD):
+                        and (kind is _ParameterKind.POSITIONAL_ONLY
+                             or kind is _ParameterKind.POSITIONAL_OR_KEYWORD)):
                     positional_or_keyword_is_keyword = True
                 continue
             if kind is _ParameterKind.POSITIONAL_ONLY:
