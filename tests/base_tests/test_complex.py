@@ -32,7 +32,8 @@ def test_basic(method: Method,
 
 
 @given(strategies.complex_classes_with_methods_and_instances,
-       strategies.booleans, strategies.booleans)
+       strategies.argument_serializers, strategies.booleans,
+       strategies.booleans)
 def test_call(class_method_instance: ClassMethodInstance,
               argument_serializer: ArgumentSerializer,
               prefer_keyword: bool,
