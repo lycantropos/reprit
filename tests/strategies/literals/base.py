@@ -36,6 +36,7 @@ scalars = (strategies.none()
            | strategies.just(Ellipsis)
            | numbers)
 strings = to_strings(to_characters())
+memory_views = strategies.builds(memoryview, strategies.binary())
 
 
 def module_to_classes(module: ModuleType) -> List[type]:
@@ -49,6 +50,7 @@ hashables = (scalars
              | to_homogeneous_frozensets(deferred_hashables)
              | to_homogeneous_tuples(deferred_hashables))
 iterables = (strings
+             | memory_views
              | to_homogeneous_sequences(deferred_objects))
 sets = to_homogeneous_sets(hashables)
 built_ins = vars(builtins).values()
