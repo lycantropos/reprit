@@ -7,7 +7,7 @@ services:
       args:
         - IMAGE_NAME=${CPYTHON_IMAGE_NAME}
         - IMAGE_VERSION=${CPYTHON_IMAGE_VERSION}
-    image: lycantropos/reprit-cpython:0.6.0-alpha
+    image: lycantropos/reprit-cpython:0.6.0
     volumes:
       - ./pytest.ini:/opt/reprit/pytest.ini
       - ./README.md:/opt/reprit/README.md
