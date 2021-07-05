@@ -53,9 +53,10 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
     ...     def __init__(self, name, *, address=None):
     ...         self.name = name
     ...         self.address = address
-    ...     __repr__ = generate_repr(__init__)
+    ...     __repr__ = generate_repr(__init__,
+    ...                              skip_defaults=True)
     >>> Person('Adrian')
-    Person('Adrian', address=None)
+    Person('Adrian')
     >>> Person('Mary', address='Somewhere on Earth')
     Person('Mary', address='Somewhere on Earth')
     >>> class ScoreBoard:
