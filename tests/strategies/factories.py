@@ -1,10 +1,12 @@
 import ast
+import builtins
 import inspect
 import sys
 import types
 from collections import OrderedDict
 from functools import partial
-from itertools import (islice,
+from itertools import (chain,
+                       islice,
                        product,
                        repeat)
 from operator import (itemgetter,
@@ -14,6 +16,7 @@ from types import (FunctionType,
 from typing import (Any,
                     Callable,
                     Dict,
+                    Iterable,
                     List,
                     Sequence,
                     Tuple,
@@ -21,6 +24,7 @@ from typing import (Any,
 
 from hypothesis import strategies
 
+from reprit import serializers
 from reprit.core.hints import (Constructor,
                                Initializer,
                                Map)
@@ -32,8 +36,11 @@ from tests.utils import (Domain,
                          identity,
                          is_not_dunder)
 from .literals import identifiers
+from .literals.base import objects
 from .literals.factories import (to_dictionaries,
                                  to_homogeneous_lists)
+
+defaults_lists = strategies.lists(objects, max_size=MAX_PARAMETERS_COUNT)
 
 booleans = strategies.booleans()
 
@@ -53,7 +60,7 @@ def to_classes(*,
     return strategies.builds(type, names, bases, namespaces)
 
 
-SignatureData = Dict[inspect._ParameterKind, List[Tuple[str, bool]]]
+SignatureData = Dict[inspect._ParameterKind, List[Tuple[str, Any, bool]]]
 
 DEFAULT_CONSTRUCTOR_NAME = '__new__'
 INITIALIZER_NAME = '__init__'
@@ -77,7 +84,9 @@ def to_constructors_with_initializers(
                                                  DEFAULT_CONSTRUCTOR_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
             unique_by=parameters_names_unique_by)
-    signatures_data = parameters_names_lists.flatmap(_to_signature_data)
+    signatures_data = (strategies.tuples(parameters_names_lists,
+                                         defaults_lists)
+                       .flatmap(_to_signature_data))
     return strategies.builds(_to_constructor_with_initializer,
                              signatures_data, field_name_factories)
 
@@ -95,7 +104,9 @@ def to_custom_constructors_with_initializers(
                                                  DEFAULT_CONSTRUCTOR_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
             unique_by=parameters_names_unique_by)
-    signatures_data = parameters_names_lists.flatmap(_to_signature_data)
+    signatures_data = (strategies.tuples(parameters_names_lists,
+                                         defaults_lists)
+                       .flatmap(_to_signature_data))
 
     def to_names_with_signatures_data(signature_data: SignatureData
                                       ) -> Strategy[Tuple[str, SignatureData]]:
@@ -120,12 +131,16 @@ def to_initializers(*,
             parameters_names.filter(partial(ne, SELF_PARAMETER_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
             unique_by=parameters_names_unique_by)
-    signatures_data = parameters_names_lists.flatmap(_to_signature_data)
+    signatures_data = (strategies.tuples(parameters_names_lists,
+                                         defaults_lists)
+                       .flatmap(_to_signature_data))
     return strategies.builds(_to_initializer, signatures_data,
                              field_name_factories)
 
 
-def _to_signature_data(names: List[str]) -> Strategy[SignatureData]:
+def _to_signature_data(names_with_defaults: Tuple[List[str], List[Any]]
+                       ) -> Strategy[SignatureData]:
+    names, defaults = names_with_defaults
     if not names:
         parameters_counters = strategies.builds(OrderedDict)
     elif len(names) == 1:
@@ -152,10 +167,19 @@ def _to_signature_data(names: List[str]) -> Strategy[SignatureData]:
 
     def select(counter: Dict[inspect._ParameterKind, Tuple[int, List[bool]]]
                ) -> SignatureData:
-        names_iterator = iter(names)
-        return OrderedDict((kind, list(zip(islice(names_iterator, count),
-                                           flags)))
-                           for kind, (count, flags) in counter.items()
+        names_iterator = reversed(names)
+        defaults_iterator = chain(defaults, repeat(inspect.Parameter.empty,
+                                                   len(names) - len(defaults)))
+        return OrderedDict((kind,
+                            list(zip(islice(names_iterator, count),
+                                     islice(defaults_iterator, count)
+                                     if (kind is not inspect._VAR_POSITIONAL
+                                         or kind is not inspect._VAR_KEYWORD)
+                                     else repeat(inspect.Parameter.empty,
+                                                 count),
+                                     flags)))
+                           for kind, (count, flags)
+                           in reversed(counter.items())
                            if count)
 
     return parameters_counters.map(select)
@@ -224,18 +248,17 @@ def _to_custom_constructor_body(
                           for kind in positional_kinds)
     keywords = signature_data.get(inspect._KEYWORD_ONLY, [])
     positional_arguments = [_to_loaded_name(parameter_name)
-                            for parameter_name, _ in positionals]
+                            for parameter_name, *_ in positionals]
     if inspect._VAR_POSITIONAL in signature_data:
-        (variadic_positional_name, _), = (
+        (variadic_positional_name, *_), = (
             signature_data[inspect._VAR_POSITIONAL])
         variadic_positional_node = ast.Starred(
                 _to_loaded_name(variadic_positional_name), ast.Load())
         positional_arguments.append(variadic_positional_node)
-    keyword_arguments = [ast.keyword(parameter_name,
-                                     _to_loaded_name(parameter_name))
-                         for parameter_name, is_callable in keywords]
+    keyword_arguments = [ast.keyword(name, _to_loaded_name(name))
+                         for name, _, is_callable in keywords]
     if inspect._VAR_KEYWORD in signature_data:
-        (variadic_keyword_name, _), = signature_data[inspect._VAR_KEYWORD]
+        (variadic_keyword_name, *_), = signature_data[inspect._VAR_KEYWORD]
         variadic_keyword_node = ast.keyword(
                 None, _to_loaded_name(variadic_keyword_name))
         keyword_arguments.append(variadic_keyword_node)
@@ -267,8 +290,8 @@ def _to_initializer_body(signature_data: SignatureData,
                                              (parameter_name),
                                              ast.Store())],
                               to_right_hand_value(parameter_name, is_callable))
-                   for parameter_name, is_callable in flatten(signature_data
-                                                              .values())])
+                   for parameter_name, _, is_callable in flatten(signature_data
+                                                                 .values())])
     else:
         return [ast.Pass()]
 
@@ -285,7 +308,7 @@ def _compile_function(name: str,
     function_node = ast.FunctionDef(name, signature, body, decorators, None)
     tree = ast.fix_missing_locations(module_factory([function_node]))
     code = compile(tree, '<ast>', 'exec')
-    namespace = {}
+    namespace = {builtins.__name__: builtins}
     exec(code, namespace)
     return namespace[name]
 
@@ -294,57 +317,72 @@ def _to_loaded_name(name: str) -> ast.Name:
     return ast.Name(name, ast.Load())
 
 
+def _value_to_ast(value: Any) -> ast.expr:
+    return ast.parse(serializers.complex_(value)).body[0].value
+
+
 def _to_signature(first_parameter_name: str,
                   signature_data: SignatureData) -> ast.arguments:
-    def to_parameters(raw_parameters: List[Tuple[str, bool]]) -> List[ast.arg]:
-        return [to_parameter(name) for name, _ in raw_parameters]
+    def to_parameters(names: Iterable[str]) -> List[ast.arg]:
+        return [to_parameter(name) for name in names]
 
     def to_parameter(name: str) -> ast.arg:
         return ast.arg(name, None)
 
+    positionals_or_keywords_data = signature_data.get(
+            inspect._POSITIONAL_OR_KEYWORD, [])
     positionals_or_keywords_nodes = to_parameters(
-            signature_data.get(inspect._POSITIONAL_OR_KEYWORD, []))
+            map(itemgetter(0), positionals_or_keywords_data))
     if inspect._VAR_POSITIONAL in signature_data:
-        (variadic_positional_name, _), = (
+        (variadic_positional_name, *_), = (
             signature_data[inspect._VAR_POSITIONAL])
         variadic_positional_node = to_parameter(variadic_positional_name)
     else:
         variadic_positional_node = None
-    keyword_only_parameters = signature_data.get(inspect._KEYWORD_ONLY, [])
-    keywords_only_nodes = to_parameters(keyword_only_parameters)
+    keyword_only_data = signature_data.get(inspect._KEYWORD_ONLY, [])
+    keywords_only_nodes = to_parameters(map(itemgetter(0), keyword_only_data))
     if inspect._VAR_KEYWORD in signature_data:
-        (variadic_keyword_name, _), = signature_data[inspect._VAR_KEYWORD]
+        (variadic_keyword_name, *_), = signature_data[inspect._VAR_KEYWORD]
         variadic_keyword_node = to_parameter(variadic_keyword_name)
     else:
         variadic_keyword_node = None
-    positionals_or_keywords_defaults = []
-    keywords_only_defaults = list(repeat(None,
-                                         len(keyword_only_parameters)))
+    positionals_or_keywords_defaults = [
+        _value_to_ast(default)
+        for _, default, _ in positionals_or_keywords_data
+        if default is not inspect.Parameter.empty]
+    keywords_only_defaults = [_value_to_ast(default)
+                              if default is not inspect.Parameter.empty
+                              else None
+                              for _, default, _ in keyword_only_data]
     if PRE_PYTHON_3_8:
         return ast.arguments([ast.arg(first_parameter_name, None)]
                              + positionals_or_keywords_nodes,
-                             variadic_positional_node,
-                             keywords_only_nodes,
-                             keywords_only_defaults,
-                             variadic_keyword_node,
+                             variadic_positional_node, keywords_only_nodes,
+                             keywords_only_defaults, variadic_keyword_node,
                              positionals_or_keywords_defaults)
     else:
         if inspect._POSITIONAL_ONLY in signature_data:
+            positionals_only_data = signature_data[inspect._POSITIONAL_ONLY]
+            positionals_only_defaults = [
+                _value_to_ast(default)
+                for _, default, _ in positionals_only_data
+                if default is not inspect.Parameter.empty]
             positionals_only_nodes = (
                     [ast.arg(first_parameter_name, None)]
-                    + to_parameters(signature_data[inspect._POSITIONAL_ONLY]))
+                    + to_parameters(map(itemgetter(0), positionals_only_data)))
+            not_keyword_defaults = (positionals_only_defaults
+                                    + positionals_or_keywords_defaults)
         else:
-            positionals_only_nodes, positionals_or_keywords_nodes = (
-                [],
+            (not_keyword_defaults, positionals_only_nodes,
+             positionals_or_keywords_nodes) = (
+                positionals_or_keywords_defaults, [],
                 [ast.arg(first_parameter_name, None)]
                 + positionals_or_keywords_nodes)
         return ast.arguments(positionals_only_nodes,
                              positionals_or_keywords_nodes,
-                             variadic_positional_node,
-                             keywords_only_nodes,
-                             keywords_only_defaults,
-                             variadic_keyword_node,
-                             positionals_or_keywords_defaults)
+                             variadic_positional_node, keywords_only_nodes,
+                             keywords_only_defaults, variadic_keyword_node,
+                             not_keyword_defaults)
 
 
 def _to_unit_signature(name: str) -> ast.arguments:
