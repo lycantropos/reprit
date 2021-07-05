@@ -173,10 +173,9 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                 else:
                     yield from map(to_keyword_string, field.keys(),
                                    map(argument_serializer, field.values()))
-            if not positional_or_keyword_is_keyword:
-                positional_or_keyword_is_keyword = (
-                        not show_parameter
-                        and (kind is _ParameterKind.POSITIONAL_ONLY
-                             or kind is _ParameterKind.POSITIONAL_OR_KEYWORD))
+            elif (not positional_or_keyword_is_keyword
+                  and (kind is _ParameterKind.POSITIONAL_ONLY
+                       or kind is _ParameterKind.POSITIONAL_OR_KEYWORD)):
+                positional_or_keyword_is_keyword = True
 
     return __repr__
