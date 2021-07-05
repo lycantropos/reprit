@@ -22,6 +22,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                   = _serializers.simple,
                   field_seeker: _FieldSeeker = _seekers.simple,
                   prefer_keyword: bool = False,
+                  skip_defaults: bool = False,
                   with_module_name: bool = False) -> _Map[_Domain, str]:
     """
     Generates ``__repr__`` method based on constructor/initializer parameters.
@@ -41,6 +42,9 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
         flag that specifies
         if positional-or-keyword parameters should be outputted
         as keyword ones when possible.
+    :param skip_defaults:
+        flag that specifies
+        if optional parameters with default arguments should be skipped.
     :param with_module_name:
         flag that specifies if module name should be added.
 
@@ -134,33 +138,44 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
              for parameter in parameters.values()
              if parameter.kind is _ParameterKind.VAR_POSITIONAL),
             None)
-    to_keyword_argument_string = '{}={}'.format
+    to_keyword_string = '{}={}'.format
 
     def to_arguments_strings(object_: _Domain) -> _Iterable[str]:
         variadic_positional_unset = (
                 variadic_positional is None
                 or not field_seeker(object_, variadic_positional.name))
-        for parameter_name, parameter in parameters.items():
-            field = field_seeker(object_, parameter_name)
+        positional_or_keyword_is_keyword = (prefer_keyword
+                                            and variadic_positional_unset)
+        for name, parameter in parameters.items():
+            field = field_seeker(object_, name)
             if isinstance(field, _MethodType) and field.__self__ is object_:
                 field = field()
-            if parameter.kind is _ParameterKind.POSITIONAL_ONLY:
-                yield argument_serializer(field)
-            elif parameter.kind is _ParameterKind.POSITIONAL_OR_KEYWORD:
-                yield (to_keyword_argument_string(parameter_name,
-                                                  argument_serializer(field))
-                       if prefer_keyword and variadic_positional_unset
-                       else argument_serializer(field))
-            elif parameter.kind is _ParameterKind.VAR_POSITIONAL:
-                yield from ((argument_serializer(field),)
-                            # we don't want to exhaust iterator
-                            if isinstance(field, abc.Iterator)
-                            else map(argument_serializer, field))
-            elif parameter.kind is _ParameterKind.KEYWORD_ONLY:
-                yield to_keyword_argument_string(parameter_name,
-                                                 argument_serializer(field))
-            else:
-                yield from map(to_keyword_argument_string, field.keys(),
-                               map(argument_serializer, field.values()))
+            kind = parameter.kind
+            show_parameter = (
+                    not skip_defaults or field is not parameter.default
+                    or (not variadic_positional_unset
+                        and (kind is _ParameterKind.POSITIONAL_ONLY
+                             or kind is _ParameterKind.POSITIONAL_OR_KEYWORD)))
+            if show_parameter:
+                if kind is _ParameterKind.POSITIONAL_ONLY:
+                    yield argument_serializer(field)
+                elif kind is _ParameterKind.POSITIONAL_OR_KEYWORD:
+                    yield (to_keyword_string(name, argument_serializer(field))
+                           if positional_or_keyword_is_keyword
+                           else argument_serializer(field))
+                elif kind is _ParameterKind.VAR_POSITIONAL:
+                    yield from ((argument_serializer(field),)
+                                # we don't want to exhaust iterator
+                                if isinstance(field, abc.Iterator)
+                                else map(argument_serializer, field))
+                elif kind is _ParameterKind.KEYWORD_ONLY:
+                    yield to_keyword_string(name, argument_serializer(field))
+                else:
+                    yield from map(to_keyword_string, field.keys(),
+                                   map(argument_serializer, field.values()))
+            elif (not positional_or_keyword_is_keyword
+                  and (kind is _ParameterKind.POSITIONAL_ONLY
+                       or kind is _ParameterKind.POSITIONAL_OR_KEYWORD)):
+                positional_or_keyword_is_keyword = True
 
     return __repr__
