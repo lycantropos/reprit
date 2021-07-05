@@ -40,7 +40,8 @@ from .literals.base import objects
 from .literals.factories import (to_dictionaries,
                                  to_homogeneous_lists)
 
-defaults_lists = strategies.lists(objects, max_size=MAX_PARAMETERS_COUNT)
+defaults_lists = strategies.lists(objects,
+                                  max_size=MAX_PARAMETERS_COUNT)
 
 booleans = strategies.booleans()
 
