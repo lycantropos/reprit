@@ -172,11 +172,10 @@ def _to_signature_data(names_with_defaults: Tuple[List[str], List[Any]]
                                                    len(names) - len(defaults)))
         return OrderedDict((kind,
                             list(zip(islice(names_iterator, count),
-                                     islice(defaults_iterator, count)
-                                     if (kind is not inspect._VAR_POSITIONAL
-                                         or kind is not inspect._VAR_KEYWORD)
-                                     else repeat(inspect.Parameter.empty,
-                                                 count),
+                                     repeat(inspect.Parameter.empty, count)
+                                     if (kind is inspect._VAR_POSITIONAL
+                                         or kind is inspect._VAR_KEYWORD)
+                                     else islice(defaults_iterator, count),
                                      flags)))
                            for kind, (count, flags)
                            in reversed(counter.items())
