@@ -62,6 +62,7 @@ This can be done like
 ...         self.variadic_positional = variadic_positional
 ...         self.keyword_only = keyword_only
 ...         self.variadic_keyword = variadic_keyword
+...
 ...     __repr__ = generate_repr(__init__)
 
 ```
@@ -82,6 +83,7 @@ or for a class with avoidance of built-in names clash
 ...         self.id = id_
 ...         self._name = name
 ...         self._zip = zip_
+...
 ...     __repr__ = generate_repr(__init__,
 ...                              field_seeker=seekers.complex_)
 
@@ -90,6 +92,31 @@ after that
 ```python
 >>> State(1, 'Alabama', 36016)
 State(1, 'Alabama', 36016)
+
+```
+
+We can also tell to skip unspecified optional parameters
+```python
+>>> from reprit.base import generate_repr
+>>> class Employee:
+...     def __init__(self, name, email=None, manager=None):
+...         self.name = name
+...         self.email = email
+...         self.manager = manager
+... 
+...     __repr__ = generate_repr(__init__,
+...                              skip_defaults=True)
+
+```
+After that
+```python
+>>> Employee('John Doe')
+Employee('John Doe')
+>>> Employee('John Doe',
+...          manager=Employee('Jane Doe'))
+Employee('John Doe', manager=Employee('Jane Doe'))
+>>> Employee('John Doe', 'johndoe@company.com', Employee('Jane Doe'))
+Employee('John Doe', 'johndoe@company.com', Employee('Jane Doe'))
 
 ```
 
