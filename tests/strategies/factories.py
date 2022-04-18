@@ -3,10 +3,8 @@ import builtins
 import inspect
 import sys
 import types
-from collections import (OrderedDict,
-                         abc)
-from functools import (partial,
-                       singledispatch)
+from collections import OrderedDict
+from functools import partial
 from itertools import (chain,
                        islice,
                        product,
@@ -20,7 +18,6 @@ from typing import (Any,
                     Dict,
                     Iterable,
                     List,
-                    Mapping,
                     Sequence,
                     Tuple,
                     Type)
@@ -38,7 +35,8 @@ from tests.utils import (Domain,
                          Strategy,
                          flatten,
                          identity,
-                         is_not_dunder)
+                         is_not_dunder,
+                         unpack)
 from .literals import identifiers
 from .literals.base import objects
 from .literals.factories import (to_dictionaries,
@@ -238,27 +236,6 @@ def _signature_data_to_namespace(signature_data: SignatureData) -> Namespace:
                for _, value, _ in signature_datum
                for sub_value in unpack(value)},
             builtins.__name__: builtins}
-
-
-@singledispatch
-def unpack(value: Any) -> Iterable[Any]:
-    yield value
-
-
-@unpack.register(abc.Iterable)
-def _(value: Iterable[Any]) -> Iterable[Any]:
-    yield value
-    if isinstance(value, str):
-        return
-    for element in value:
-        yield from unpack(element)
-
-
-@unpack.register(abc.Mapping)
-def _(value: Mapping[Any, Any]) -> Iterable[Any]:
-    yield value
-    yield from unpack(value.keys())
-    yield from unpack(value.values())
 
 
 def _to_constructor_body(class_parameter_name: str = CLASS_PARAMETER_NAME,

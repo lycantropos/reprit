@@ -1,11 +1,15 @@
 import builtins
+from collections import abc
 from enum import _is_dunder
+from functools import singledispatch
 from itertools import chain
 from types import (MethodType,
                    ModuleType,
                    SimpleNamespace)
 from typing import (Any,
                     Dict,
+                    Iterable,
+                    Mapping,
                     Tuple,
                     Type,
                     TypeVar,
@@ -24,9 +28,11 @@ Namespace = Dict[str, Union[Domain, ModuleType]]
 
 
 def to_base_namespace(value: Any) -> Namespace:
-    return {**{type(field).__module__:
-                   SimpleNamespace(**{type(field).__qualname__: type(field)})
-               for name, field in vars(value).items()},
+    return {**{type(sub_field).__module__:
+                   SimpleNamespace(**{type(sub_field).__qualname__
+                                      : type(sub_field)})
+               for name, field in vars(value).items()
+               for sub_field in unpack(field)},
             builtins.__name__: builtins}
 
 
@@ -63,3 +69,24 @@ def to_namespace(object_path: str, object_: Domain) -> Namespace:
         step_module = next_step_module
     setattr(step_module, object_path_parts[-1], object_)
     return result
+
+
+@singledispatch
+def unpack(value: Any) -> Iterable[Any]:
+    yield value
+
+
+@unpack.register(abc.Iterable)
+def _(value: Iterable[Any]) -> Iterable[Any]:
+    yield value
+    if isinstance(value, str):
+        return
+    for element in value:
+        yield from unpack(element)
+
+
+@unpack.register(abc.Mapping)
+def _(value: Mapping[Any, Any]) -> Iterable[Any]:
+    yield value
+    yield from unpack(value.keys())
+    yield from unpack(value.values())
