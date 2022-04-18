@@ -24,7 +24,6 @@ Namespace = Dict[str, Union[Domain, ModuleType]]
 
 test_types_module = SimpleNamespace()
 test_types_module.__name__ = 'test_types'
-
 base_namespace = {builtins.__name__: builtins,
                   test_types_module.__name__: test_types_module}
 

@@ -69,15 +69,9 @@ def is_invalid_key(key: str) -> bool:
     return _is_sunder(key) or key == type.mro.__name__
 
 
-def is_valid_test_module_field(candidate: str) -> bool:
-    return candidate not in vars(test_types_module)
-
-
-test_module_fields_names = any_identifiers.filter(is_valid_test_module_field)
-
 
 def enum_types(*,
-               names: Strategy[str],
+               names: Strategy[str] = any_identifiers,
                bases: Strategy[Bases]
                = strategies.tuples(strategies.just(Enum)),
                keys: Strategy[str] = any_identifiers.filter(is_valid_key),
@@ -99,6 +93,10 @@ def enum_types(*,
 
 
 def _to_enum(name: str, bases: Bases, contents: Dict[str, Any]) -> EnumMeta:
+    namesake = getattr(test_types_module, name, None)
+    if namesake is not None:
+        assert isinstance(namesake, EnumMeta)
+        contents.update({element.name: element.value for element in namesake})
     result = EnumMeta(name, bases, _to_enum_contents(name, bases, contents))
     result.__module__ = test_types_module.__name__
     setattr(test_types_module, name, result)
@@ -115,10 +113,7 @@ def _to_enum_contents(name: str,
     return result
 
 
-enums = (enum_types(names=test_module_fields_names,
-                    min_size=1)
-         .map(list)
-         .flatmap(strategies.sampled_from))
+enums = enum_types(min_size=1).map(list).flatmap(strategies.sampled_from)
 hashables = (scalars
              | strings
              | enums
