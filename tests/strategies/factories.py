@@ -31,10 +31,12 @@ from reprit.core.hints import (Constructor,
 from tests.configs import MAX_PARAMETERS_COUNT
 from tests.hints import Operator
 from tests.utils import (Domain,
+                         Namespace,
                          Strategy,
                          flatten,
                          identity,
-                         is_not_dunder)
+                         is_not_dunder,
+                         unpack)
 from .literals import identifiers
 from .literals.base import objects
 from .literals.factories import (to_dictionaries,
@@ -131,7 +133,8 @@ def to_initializers(*,
     parameters_names_lists = strategies.lists(
             parameters_names.filter(partial(ne, SELF_PARAMETER_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
-            unique_by=parameters_names_unique_by)
+            unique_by=parameters_names_unique_by
+    )
     signatures_data = (strategies.tuples(parameters_names_lists,
                                          defaults_lists)
                        .flatmap(_to_signature_data))
@@ -203,7 +206,8 @@ def _to_custom_constructor_with_initializer(
 def _to_constructor(signature_data: SignatureData) -> Constructor:
     signature = _to_signature(CLASS_PARAMETER_NAME, signature_data)
     body = _to_constructor_body()
-    return _compile_function(DEFAULT_CONSTRUCTOR_NAME, signature, body, [])
+    return _compile_function(DEFAULT_CONSTRUCTOR_NAME, signature, body, [],
+                             _signature_data_to_namespace(signature_data))
 
 
 def _to_custom_constructor(name: str,
@@ -211,14 +215,30 @@ def _to_custom_constructor(name: str,
     signature = _to_signature(CLASS_PARAMETER_NAME, signature_data)
     body = _to_custom_constructor_body(signature_data)
     decorators = [ast.Name(classmethod.__name__, ast.Load())]
-    return _compile_function(name, signature, body, decorators)
+    return _compile_function(name, signature, body, decorators,
+                             _signature_data_to_namespace(signature_data))
 
 
 def _to_initializer(signature_data: SignatureData,
                     field_name_factory: Operator[str]) -> Initializer:
     signature = _to_signature(SELF_PARAMETER_NAME, signature_data)
     body = _to_initializer_body(signature_data, field_name_factory)
-    return _compile_function(INITIALIZER_NAME, signature, body, [])
+    return _compile_function(INITIALIZER_NAME, signature, body, [],
+                             _signature_data_to_namespace(signature_data))
+
+
+def _signature_data_to_namespace(signature_data: SignatureData) -> Namespace:
+    raw_namespaces = {}
+    for signature_datum in signature_data.values():
+        for _, value, _ in signature_datum:
+            for sub_value in unpack(value):
+                sub_cls = type(sub_value)
+                raw_namespace = raw_namespaces.setdefault(sub_cls.__module__,
+                                                          {})
+                raw_namespace[sub_cls.__qualname__] = sub_cls
+    return {**{module_name: types.SimpleNamespace(**raw_namespace)
+               for module_name, raw_namespace in raw_namespaces.items()},
+            builtins.__name__: builtins}
 
 
 def _to_constructor_body(class_parameter_name: str = CLASS_PARAMETER_NAME,
@@ -242,8 +262,8 @@ def _to_custom_constructor_body(
         signature_data: SignatureData,
         class_parameter_name: str = CLASS_PARAMETER_NAME,
         positional_kinds: Sequence[inspect._ParameterKind]
-        = (inspect._POSITIONAL_ONLY,
-           inspect._POSITIONAL_OR_KEYWORD)) -> List[ast.stmt]:
+        = (inspect._POSITIONAL_ONLY, inspect._POSITIONAL_OR_KEYWORD)
+) -> List[ast.stmt]:
     positionals = flatten(signature_data.get(kind, [])
                           for kind in positional_kinds)
     keywords = signature_data.get(inspect._KEYWORD_ONLY, [])
@@ -300,15 +320,15 @@ def _compile_function(name: str,
                       signature: ast.arguments,
                       body: List[ast.stmt],
                       decorators: List[ast.Name],
+                      namespace: Namespace,
                       module_factory: Callable[..., ast.Module] =
                       ast.Module if PRE_PYTHON_3_8
                       # Python3.8 adds `type_ignores` parameter
-                      else partial(ast.Module, type_ignores=[])
-                      ) -> FunctionType:
+                      else partial(ast.Module,
+                                   type_ignores=[])) -> FunctionType:
     function_node = ast.FunctionDef(name, signature, body, decorators, None)
     tree = ast.fix_missing_locations(module_factory([function_node]))
     code = compile(tree, '<ast>', 'exec')
-    namespace = {builtins.__name__: builtins}
     exec(code, namespace)
     return namespace[name]
 
@@ -402,13 +422,14 @@ def to_instances(cls: Type[Domain],
         positionals, keywords = arguments
         return cls(*positionals, **keywords)
 
-    return (to_method_arguments(
+    arguments = to_method_arguments(
             method=cls.__init__,
             values=values,
-            variadic_positionals_counts=variadic_positionals_counts,
+            variadic_keywords_counts=variadic_keywords_counts,
             variadic_keywords_names=variadic_keywords_names,
-            variadic_keywords_counts=variadic_keywords_counts)
-            .map(unpack_arguments))
+            variadic_positionals_counts=variadic_positionals_counts
+    )
+    return arguments.map(unpack_arguments)
 
 
 @strategies.composite
@@ -416,9 +437,9 @@ def to_method_arguments(draw: Callable[[Strategy[Domain]], Domain],
                         *,
                         method: Callable,
                         values: Dict[Type[Domain], Strategy[Domain]],
-                        variadic_positionals_counts: Strategy[int],
+                        variadic_keywords_counts: Strategy[int],
                         variadic_keywords_names: Strategy[str],
-                        variadic_keywords_counts: Strategy[int]
+                        variadic_positionals_counts: Strategy[int]
                         ) -> Strategy[Tuple[Tuple[Any, ...], Dict[str, Any]]]:
     parameters = OrderedDict(inspect.signature(method).parameters)
     parameters.popitem(0)

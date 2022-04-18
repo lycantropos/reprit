@@ -29,3 +29,9 @@ pascal_case = (to_strings(alphabet=camel_case_alphabet,
                .filter(str.isidentifier)
                .filter(is_not_keyword)
                .map(camel_case_to_pascal_case))
+any_identifiers_characters = strategies.sampled_from(ascii_letters + '_'
+                                                     + digits)
+any_identifiers = (strategies.text(alphabet=any_identifiers_characters,
+                                   min_size=1)
+                   .filter(str.isidentifier)
+                   .filter(is_not_keyword))

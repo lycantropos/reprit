@@ -1,7 +1,3 @@
-import builtins
-import platform
-import sys
-
 import pytest
 from hypothesis import given
 
@@ -13,6 +9,7 @@ from tests import strategies
 from tests.utils import (ClassMethodInstance,
                          Method,
                          are_objects_equivalent,
+                         to_base_namespace,
                          to_namespace)
 
 
@@ -55,9 +52,6 @@ def test_call(class_method_instance: ClassMethodInstance,
     assert isinstance(result, str)
 
 
-@pytest.mark.skipif(platform.python_implementation() == 'PyPy'
-                    and sys.version_info > (3, 5, 3),
-                    reason='Unreproducible failures on PyPy3.5.3')
 @given(strategies.complex_classes_with_methods_and_instances,
        strategies.booleans, strategies.booleans, strategies.booleans)
 def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
@@ -79,7 +73,7 @@ def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
                                   if with_module_name
                                   else cls.__qualname__,
                                   cls),
-                   builtins.__name__: builtins})
+                   **to_base_namespace(instance)})
 
     assert are_objects_equivalent(instance, result)
 

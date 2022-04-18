@@ -8,6 +8,7 @@ from types import (BuiltinFunctionType as _BuiltinFunctionType,
                    ModuleType as _ModuleType)
 from typing import (Any as _Any,
                     Union as _Union)
+from enum import Enum as _Enum
 
 try:
     from types import ClassMethodDescriptorType as _ClassMethodDescriptorType
@@ -57,6 +58,11 @@ def _(object_: _Union[_ClassMethodDescriptorType, _GetSetDescriptorType,
                       _MemberDescriptorType, _MethodDescriptorType,
                       _MethodWrapperType, _WrapperDescriptorType]) -> str:
     return complex_(object_.__objclass__) + '.' + object_.__name__
+
+
+@complex_.register(_Enum)
+def _(object_: _Enum) -> str:
+    return complex_(type(object_)) + '.' + object_.name
 
 
 @complex_.register(_ModuleType)

@@ -1,9 +1,16 @@
+import builtins
+import types
+from collections import abc
 from enum import _is_dunder
+from functools import singledispatch
 from itertools import chain
 from types import (MethodType,
-                   ModuleType)
+                   ModuleType,
+                   SimpleNamespace)
 from typing import (Any,
                     Dict,
+                    Iterable,
+                    Mapping,
                     Tuple,
                     Type,
                     TypeVar,
@@ -19,6 +26,21 @@ Strategy = SearchStrategy
 Method = Union[Constructor, Initializer]
 ClassMethodInstance = Tuple[Type[Domain], Method, Domain]
 Namespace = Dict[str, Union[Domain, ModuleType]]
+
+
+def to_base_namespace(value: Any) -> Namespace:
+    raw_namespaces = {}
+    for name, field in vars(value).items():
+        if isinstance(field, types.MethodType) and field.__self__:
+            field = field()
+        for sub_field in unpack(field):
+            sub_field_cls = type(sub_field)
+            raw_namespace = raw_namespaces.setdefault(sub_field_cls.__module__,
+                                                      {})
+            raw_namespace[sub_field_cls.__qualname__] = sub_field_cls
+    return {**{module_name: SimpleNamespace(**raw_namespace)
+               for module_name, raw_namespace in raw_namespaces.items()},
+            builtins.__name__: builtins}
 
 
 def are_objects_equivalent(left: Any, right: Any) -> bool:
@@ -54,3 +76,24 @@ def to_namespace(object_path: str, object_: Domain) -> Namespace:
         step_module = next_step_module
     setattr(step_module, object_path_parts[-1], object_)
     return result
+
+
+@singledispatch
+def unpack(value: Any) -> Iterable[Any]:
+    yield value
+
+
+@unpack.register(abc.Iterable)
+def _(value: Iterable[Any]) -> Iterable[Any]:
+    yield value
+    if isinstance(value, str):
+        return
+    for element in value:
+        yield from unpack(element)
+
+
+@unpack.register(abc.Mapping)
+def _(value: Mapping[Any, Any]) -> Iterable[Any]:
+    yield value
+    yield from unpack(value.keys())
+    yield from unpack(value.values())

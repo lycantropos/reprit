@@ -1,14 +1,14 @@
 reprit
 ======
 
-[![](https://dev.azure.com/lycantropos/reprit/_apis/build/status/lycantropos.reprit?branchName=master)](https://dev.azure.com/lycantropos/reprit/_build/latest?definitionId=13&branchName=master "Azure Pipelines")
+[![](https://github.com/lycantropos/reprit/workflows/CI/badge.svg)](https://github.com/lycantropos/reprit/actions/workflows/ci.yml "Github Actions")
 [![](https://readthedocs.org/projects/reprit/badge/?version=latest)](https://reprit.readthedocs.io/en/latest "Documentation")
 [![](https://codecov.io/gh/lycantropos/reprit/branch/master/graph/badge.svg)](https://codecov.io/gh/lycantropos/reprit "Codecov")
 [![](https://img.shields.io/github/license/lycantropos/reprit.svg)](https://github.com/lycantropos/reprit/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/reprit.svg)](https://badge.fury.io/py/reprit "PyPI")
 
-In what follows `python` is an alias for `python3.5` or `pypy3.5`
-or any later version (`python3.6`, `pypy3.6` and so on).
+In what follows `python` is an alias for `python3.6` or `pypy3.6`
+or any later version (`python3.7`, `pypy3.7` and so on).
 
 Installation
 ------------
@@ -191,7 +191,7 @@ Inside `Docker` container:
   docker-compose --file docker-compose.pypy.yml up
   ```
 
-`Bash` script (e.g. can be used in `Git` hooks):
+`Bash` script:
 - with `CPython`
   ```bash
   ./run-tests.sh
@@ -206,7 +206,7 @@ Inside `Docker` container:
   ./run-tests.sh pypy
   ```
 
-`PowerShell` script (e.g. can be used in `Git` hooks):
+`PowerShell` script:
 - with `CPython`
   ```powershell
   .\run-tests.ps1
