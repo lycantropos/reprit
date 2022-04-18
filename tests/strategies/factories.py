@@ -3,8 +3,10 @@ import builtins
 import inspect
 import sys
 import types
-from collections import OrderedDict
-from functools import partial
+from collections import (OrderedDict,
+                         abc)
+from functools import (partial,
+                       singledispatch)
 from itertools import (chain,
                        islice,
                        product,
@@ -227,13 +229,29 @@ def _to_initializer(signature_data: SignatureData,
 
 
 def _signature_data_to_namespace(signature_data: SignatureData) -> Namespace:
-    return {**{type(value).__module__:
+    return {**{type(sub_value).__module__:
                    types.SimpleNamespace(**{
-                       type(value).__qualname__: type(value)
+                       type(sub_value).__qualname__: type(sub_value)
                    })
                for signature_datum in signature_data.values()
-               for _, value, _ in signature_datum},
+               for _, value, _ in signature_datum
+               for sub_value in unpack(value)},
             builtins.__name__: builtins}
+
+
+@singledispatch
+def unpack(value: Any) -> Iterable[Any]:
+    yield value
+
+
+unpack.register(str, unpack)
+
+
+@unpack.register(abc.Iterable)
+def _(value: Iterable[Any]) -> Iterable[Any]:
+    yield value
+    for element in value:
+        yield from unpack(element)
 
 
 def _to_constructor_body(class_parameter_name: str = CLASS_PARAMETER_NAME,
@@ -324,7 +342,10 @@ def _compile_function(name: str,
     function_node = ast.FunctionDef(name, signature, body, decorators, None)
     tree = ast.fix_missing_locations(module_factory([function_node]))
     code = compile(tree, '<ast>', 'exec')
-    exec(code, namespace)
+    try:
+        exec(code, namespace)
+    except Exception:
+        raise
     return namespace[name]
 
 
