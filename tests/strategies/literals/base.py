@@ -132,7 +132,7 @@ objects = (hashables
            | (strategies.sampled_from(built_in_callables
                                       + built_in_classes_fields)
               .filter(round_trippable_built_in)))
-enum_types = to_enum_types(values=objects,
+enum_types = to_enum_types(values=hashables,
                            min_size=1)
 enums = enum_types.map(list).flatmap(strategies.sampled_from)
 objects |= enums
