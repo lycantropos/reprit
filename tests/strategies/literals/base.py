@@ -71,7 +71,7 @@ def is_invalid_key(key: str) -> bool:
 def to_enum_types(*,
                   names: Strategy[str] = any_identifiers,
                   bases: Strategy[Bases]
-               = strategies.tuples(strategies.just(Enum)),
+                  = strategies.tuples(strategies.just(Enum)),
                   keys: Strategy[str] = any_identifiers.filter(is_valid_key),
                   values: Strategy[Any],
                   min_size: int = 0,
