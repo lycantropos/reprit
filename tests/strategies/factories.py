@@ -228,13 +228,16 @@ def _to_initializer(signature_data: SignatureData,
 
 
 def _signature_data_to_namespace(signature_data: SignatureData) -> Namespace:
-    return {**{type(sub_value).__module__:
-                   types.SimpleNamespace(**{
-                       type(sub_value).__qualname__: type(sub_value)
-                   })
-               for signature_datum in signature_data.values()
-               for _, value, _ in signature_datum
-               for sub_value in unpack(value)},
+    raw_namespaces = {}
+    for signature_datum in signature_data.values():
+        for _, value, _ in signature_datum:
+            for sub_value in unpack(value):
+                sub_cls = type(sub_value)
+                raw_namespace = raw_namespaces.setdefault(sub_cls.__module__,
+                                                          {})
+                raw_namespace[sub_cls.__qualname__] = sub_cls
+    return {**{module_name: types.SimpleNamespace(**raw_namespace)
+               for module_name, raw_namespace in raw_namespaces.items()},
             builtins.__name__: builtins}
 
 
@@ -259,8 +262,8 @@ def _to_custom_constructor_body(
         signature_data: SignatureData,
         class_parameter_name: str = CLASS_PARAMETER_NAME,
         positional_kinds: Sequence[inspect._ParameterKind]
-        = (inspect._POSITIONAL_ONLY,
-           inspect._POSITIONAL_OR_KEYWORD)) -> List[ast.stmt]:
+        = (inspect._POSITIONAL_ONLY, inspect._POSITIONAL_OR_KEYWORD)
+) -> List[ast.stmt]:
     positionals = flatten(signature_data.get(kind, [])
                           for kind in positional_kinds)
     keywords = signature_data.get(inspect._KEYWORD_ONLY, [])
@@ -326,10 +329,7 @@ def _compile_function(name: str,
     function_node = ast.FunctionDef(name, signature, body, decorators, None)
     tree = ast.fix_missing_locations(module_factory([function_node]))
     code = compile(tree, '<ast>', 'exec')
-    try:
-        exec(code, namespace)
-    except Exception:
-        raise
+    exec(code, namespace)
     return namespace[name]
 
 
@@ -422,13 +422,14 @@ def to_instances(cls: Type[Domain],
         positionals, keywords = arguments
         return cls(*positionals, **keywords)
 
-    return (to_method_arguments(
+    arguments = to_method_arguments(
             method=cls.__init__,
             values=values,
-            variadic_positionals_counts=variadic_positionals_counts,
+            variadic_keywords_counts=variadic_keywords_counts,
             variadic_keywords_names=variadic_keywords_names,
-            variadic_keywords_counts=variadic_keywords_counts)
-            .map(unpack_arguments))
+            variadic_positionals_counts=variadic_positionals_counts
+    )
+    return arguments.map(unpack_arguments)
 
 
 @strategies.composite
@@ -436,9 +437,9 @@ def to_method_arguments(draw: Callable[[Strategy[Domain]], Domain],
                         *,
                         method: Callable,
                         values: Dict[Type[Domain], Strategy[Domain]],
-                        variadic_positionals_counts: Strategy[int],
+                        variadic_keywords_counts: Strategy[int],
                         variadic_keywords_names: Strategy[str],
-                        variadic_keywords_counts: Strategy[int]
+                        variadic_positionals_counts: Strategy[int]
                         ) -> Strategy[Tuple[Tuple[Any, ...], Dict[str, Any]]]:
     parameters = OrderedDict(inspect.signature(method).parameters)
     parameters.popitem(0)

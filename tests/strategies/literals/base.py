@@ -68,14 +68,14 @@ def is_invalid_key(key: str) -> bool:
     return _is_sunder(key) or key == type.mro.__name__
 
 
-def enum_types(*,
-               names: Strategy[str] = any_identifiers,
-               bases: Strategy[Bases]
+def to_enum_types(*,
+                  names: Strategy[str] = any_identifiers,
+                  bases: Strategy[Bases]
                = strategies.tuples(strategies.just(Enum)),
-               keys: Strategy[str] = any_identifiers.filter(is_valid_key),
-               values: Strategy[Any] = deferred_objects,
-               min_size: int = 0,
-               max_size: Optional[int] = None) -> Strategy[EnumMeta]:
+                  keys: Strategy[str] = any_identifiers.filter(is_valid_key),
+                  values: Strategy[Any],
+                  min_size: int = 0,
+                  max_size: Optional[int] = None) -> Strategy[EnumMeta]:
     contents = strategies.dictionaries(keys, values,
                                        min_size=min_size,
                                        max_size=max_size)
@@ -98,10 +98,8 @@ def _to_enum_contents(name: str,
     return result
 
 
-enums = enum_types(min_size=1).map(list).flatmap(strategies.sampled_from)
 hashables = (scalars
              | strings
-             | enums
              | to_homogeneous_frozensets(deferred_hashables)
              | to_homogeneous_tuples(deferred_hashables))
 iterables = (strings
@@ -134,6 +132,9 @@ objects = (hashables
            | (strategies.sampled_from(built_in_callables
                                       + built_in_classes_fields)
               .filter(round_trippable_built_in)))
+enum_types = to_enum_types(values=objects,
+                           min_size=1)
+enums = enum_types.map(list).flatmap(strategies.sampled_from)
 alike_parameters_counts = strategies.integers(0, MAX_ALIKE_PARAMETERS_COUNT)
 simple_class_field_name_factories = strategies.just(lambda name: name)
 complex_class_field_name_factories = (

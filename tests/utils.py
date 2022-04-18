@@ -29,14 +29,17 @@ Namespace = Dict[str, Union[Domain, ModuleType]]
 
 
 def to_base_namespace(value: Any) -> Namespace:
-    return {**{type(sub_field).__module__:
-                   SimpleNamespace(**{type(sub_field).__qualname__
-                                      : type(sub_field)})
-               for name, field in vars(value).items()
-               for sub_field in unpack(field()
-                                       if (isinstance(field, types.MethodType)
-                                           and field.__self__)
-                                       else field)},
+    raw_namespaces = {}
+    for name, field in vars(value).items():
+        if isinstance(field, types.MethodType) and field.__self__:
+            field = field()
+        for sub_field in unpack(field):
+            sub_field_cls = type(sub_field)
+            raw_namespace = raw_namespaces.setdefault(sub_field_cls.__module__,
+                                                      {})
+            raw_namespace[sub_field_cls.__qualname__] = sub_field_cls
+    return {**{module_name: SimpleNamespace(**raw_namespace)
+               for module_name, raw_namespace in raw_namespaces.items()},
             builtins.__name__: builtins}
 
 
