@@ -1,7 +1,7 @@
 reprit
 ======
 
-[![](https://dev.azure.com/lycantropos/reprit/_apis/build/status/lycantropos.reprit?branchName=master)](https://dev.azure.com/lycantropos/reprit/_build/latest?definitionId=13&branchName=master "Azure Pipelines")
+[![](https://github.com/lycantropos/reprit/workflows/CI/badge.svg)](https://github.com/lycantropos/reprit/actions/workflows/ci.yml "Github Actions")
 [![](https://readthedocs.org/projects/reprit/badge/?version=latest)](https://reprit.readthedocs.io/en/latest "Documentation")
 [![](https://codecov.io/gh/lycantropos/reprit/branch/master/graph/badge.svg)](https://codecov.io/gh/lycantropos/reprit "Codecov")
 [![](https://img.shields.io/github/license/lycantropos/reprit.svg)](https://github.com/lycantropos/reprit/blob/master/LICENSE "License")
