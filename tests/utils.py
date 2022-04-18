@@ -24,10 +24,10 @@ Namespace = Dict[str, Union[Domain, ModuleType]]
 
 
 def to_base_namespace(value: Any) -> Namespace:
-    return {builtins.__name__: builtins,
-            **{type(field).__module__:
+    return {**{type(field).__module__:
                    SimpleNamespace(**{type(field).__qualname__: type(field)})
-               for name, field in vars(value).items()}}
+               for name, field in vars(value).items()},
+            builtins.__name__: builtins}
 
 
 def are_objects_equivalent(left: Any, right: Any) -> bool:
