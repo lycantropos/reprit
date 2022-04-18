@@ -257,8 +257,8 @@ def _(value: Iterable[Any]) -> Iterable[Any]:
 @unpack.register(abc.Mapping)
 def _(value: Mapping[Any, Any]) -> Iterable[Any]:
     yield value
-    for element in value.values():
-        yield from unpack(element)
+    yield from unpack(value.keys())
+    yield from unpack(value.values())
 
 
 def _to_constructor_body(class_parameter_name: str = CLASS_PARAMETER_NAME,
