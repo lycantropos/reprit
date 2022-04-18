@@ -73,19 +73,12 @@ def enum_types(*,
                bases: Strategy[Bases]
                = strategies.tuples(strategies.just(Enum)),
                keys: Strategy[str] = any_identifiers.filter(is_valid_key),
-               values: Strategy[Any] = strategies.integers(),
-               unique_by: Optional[UniqueBy] = None,
+               values: Strategy[Any] = deferred_objects,
                min_size: int = 0,
                max_size: Optional[int] = None) -> Strategy[EnumMeta]:
-    contents = (strategies.tuples(strategies.lists(keys,
-                                                   min_size=min_size,
-                                                   max_size=max_size,
-                                                   unique=True),
-                                  strategies.lists(values,
-                                                   min_size=min_size,
-                                                   max_size=max_size,
-                                                   unique_by=unique_by))
-                .map(lambda items: dict(zip(*items))))
+    contents = strategies.dictionaries(keys, values,
+                                       min_size=min_size,
+                                       max_size=max_size)
     return (strategies.tuples(names, bases, contents)
             .map(lambda args: _to_enum(*args)))
 
