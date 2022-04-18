@@ -135,6 +135,7 @@ objects = (hashables
 enum_types = to_enum_types(values=objects,
                            min_size=1)
 enums = enum_types.map(list).flatmap(strategies.sampled_from)
+objects |= enums
 alike_parameters_counts = strategies.integers(0, MAX_ALIKE_PARAMETERS_COUNT)
 simple_class_field_name_factories = strategies.just(lambda name: name)
 complex_class_field_name_factories = (
