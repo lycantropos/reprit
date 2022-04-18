@@ -79,8 +79,7 @@ def enum_types(*,
     contents = strategies.dictionaries(keys, values,
                                        min_size=min_size,
                                        max_size=max_size)
-    return (strategies.tuples(names, bases, contents)
-            .map(lambda args: _to_enum(*args)))
+    return strategies.builds(_to_enum, names, bases, contents)
 
 
 def _to_enum(name: str, bases: Bases, contents: Dict[str, Any]) -> EnumMeta:
