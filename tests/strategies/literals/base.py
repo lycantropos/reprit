@@ -4,7 +4,6 @@ from enum import (Enum,
                   EnumMeta,
                   _is_dunder,
                   _is_sunder)
-from string import ascii_letters
 from types import ModuleType
 from typing import (Any,
                     Callable,
@@ -29,6 +28,7 @@ from .factories import (to_characters,
                         to_homogeneous_sets,
                         to_homogeneous_tuples,
                         to_strings)
+from .identifiers import any_identifiers
 
 Serializable = Union[None, bool, float, int, str]
 Serializable = Union[Dict[str, Serializable], List[Serializable]]
@@ -60,11 +60,6 @@ deferred_objects = strategies.deferred(lambda: objects)
 Bases = Sequence[type]
 UniqueBy = Callable[[Any], Hashable]
 
-identifiers_characters = strategies.sampled_from('_' + ascii_letters)
-python_identifiers = (strategies.text(alphabet=identifiers_characters,
-                                      min_size=1)
-                      .filter(str.isidentifier))
-
 
 def is_valid_key(key: str) -> bool:
     return not is_invalid_key(key) and not _is_dunder(key)
@@ -75,10 +70,10 @@ def is_invalid_key(key: str) -> bool:
 
 
 def enum_types(*,
-               names: Strategy[str] = python_identifiers,
+               names: Strategy[str] = any_identifiers,
                bases: Strategy[Bases]
                = strategies.tuples(strategies.just(Enum)),
-               keys: Strategy[str] = python_identifiers.filter(is_valid_key),
+               keys: Strategy[str] = any_identifiers.filter(is_valid_key),
                values: Strategy[Any] = strategies.integers(),
                unique_by: Optional[UniqueBy] = None,
                min_size: int = 0,
