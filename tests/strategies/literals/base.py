@@ -91,7 +91,9 @@ def enum_types(*,
 
 
 def _to_enum(name: str, bases: Bases, contents: Dict[str, Any]) -> EnumMeta:
-    return EnumMeta(name, bases, _to_enum_contents(name, bases, contents))
+    result = EnumMeta(name, bases, _to_enum_contents(name, bases, contents))
+    result.__module__ = '_' + str(hash(result)).replace('-', '_')
+    return result
 
 
 def _to_enum_contents(name: str,
