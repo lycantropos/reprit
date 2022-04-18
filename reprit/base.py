@@ -3,7 +3,8 @@ from collections import (OrderedDict,
 from inspect import (_ParameterKind,
                      signature as _signature)
 from types import MethodType as _MethodType
-from typing import (Iterable as _Iterable,
+from typing import (Any as _Any,
+                    Iterable as _Iterable,
                     Union as _Union)
 
 from . import (seekers as _seekers,
@@ -118,7 +119,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
     method_name = unwrapped_method.__name__
     parameters = OrderedDict(_signature(unwrapped_method).parameters)
 
-    if method_name in ('__init__', '__new__'):
+    if method_name == '__init__' or method_name == '__new__':
         # remove `cls`/`self`
         parameters.popitem(0)
 
@@ -140,6 +141,11 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
              if parameter.kind is _ParameterKind.VAR_POSITIONAL),
             None)
     to_keyword_string = '{}={}'.format
+    positional_only_parameters = [
+        parameter
+        for parameter in parameters.values()
+        if parameter.kind is _ParameterKind.POSITIONAL_ONLY
+    ]
 
     def to_arguments_strings(object_: _Domain) -> _Iterable[str]:
         variadic_positional_unset = (
@@ -147,21 +153,29 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                 or not field_seeker(object_, variadic_positional.name))
         positional_or_keyword_is_keyword = (prefer_keyword
                                             and variadic_positional_unset)
-        for name, parameter in parameters.items():
-            field = field_seeker(object_, name)
-            if isinstance(field, _MethodType) and field.__self__ is object_:
-                field = field()
+        fields = [seek_field(object_, name) for name in parameters.keys()]
+        for index, (parameter, field) in enumerate(zip(parameters.values(),
+                                                       fields)):
             kind = parameter.kind
             show_parameter = (
-                    not skip_defaults or field is not parameter.default
-                    or (not variadic_positional_unset
-                        and (kind is _ParameterKind.POSITIONAL_ONLY
-                             or kind is _ParameterKind.POSITIONAL_OR_KEYWORD)))
+                    not skip_defaults
+                    or field is not parameter.default
+                    or (kind is _ParameterKind.POSITIONAL_OR_KEYWORD
+                        and not variadic_positional_unset)
+                    or (kind is _ParameterKind.POSITIONAL_ONLY
+                        and
+                        (not variadic_positional_unset
+                         or any(field is not parameter.default
+                                for parameter, field
+                                in zip(positional_only_parameters[index + 1:],
+                                       fields[index + 1:]))))
+            )
             if show_parameter:
                 if kind is _ParameterKind.POSITIONAL_ONLY:
                     yield argument_serializer(field)
                 elif kind is _ParameterKind.POSITIONAL_OR_KEYWORD:
-                    yield (to_keyword_string(name, argument_serializer(field))
+                    yield (to_keyword_string(parameter.name,
+                                             argument_serializer(field))
                            if positional_or_keyword_is_keyword
                            else argument_serializer(field))
                 elif kind is _ParameterKind.VAR_POSITIONAL:
@@ -170,7 +184,8 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                                 if isinstance(field, abc.Iterator)
                                 else map(argument_serializer, field))
                 elif kind is _ParameterKind.KEYWORD_ONLY:
-                    yield to_keyword_string(name, argument_serializer(field))
+                    yield to_keyword_string(parameter.name,
+                                            argument_serializer(field))
                 else:
                     yield from map(to_keyword_string, field.keys(),
                                    map(argument_serializer, field.values()))
@@ -178,5 +193,11 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                   and (kind is _ParameterKind.POSITIONAL_ONLY
                        or kind is _ParameterKind.POSITIONAL_OR_KEYWORD)):
                 positional_or_keyword_is_keyword = True
+
+    def seek_field(object_: _Domain, name: str) -> _Any:
+        result = field_seeker(object_, name)
+        if isinstance(result, _MethodType) and result.__self__ is object_:
+            result = result()
+        return result
 
     return __repr__
