@@ -1,4 +1,5 @@
 import builtins
+import types
 from collections import abc
 from enum import _is_dunder
 from functools import singledispatch
@@ -32,7 +33,10 @@ def to_base_namespace(value: Any) -> Namespace:
                    SimpleNamespace(**{type(sub_field).__qualname__
                                       : type(sub_field)})
                for name, field in vars(value).items()
-               for sub_field in unpack(field)},
+               for sub_field in unpack(field()
+                                       if (isinstance(field, types.MethodType)
+                                           and field.__self__)
+                                       else field)},
             builtins.__name__: builtins}
 
 
