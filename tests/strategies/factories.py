@@ -20,6 +20,7 @@ from typing import (Any,
                     Dict,
                     Iterable,
                     List,
+                    Mapping,
                     Sequence,
                     Tuple,
                     Type)
@@ -250,6 +251,13 @@ def _(value: Iterable[Any]) -> Iterable[Any]:
     if isinstance(value, str):
         return
     for element in value:
+        yield from unpack(element)
+
+
+@unpack.register(abc.Mapping)
+def _(value: Mapping[Any, Any]) -> Iterable[Any]:
+    yield value
+    for element in value.values():
         yield from unpack(element)
 
 
