@@ -1,5 +1,4 @@
 import ast
-import builtins
 import inspect
 import sys
 import types
@@ -32,6 +31,7 @@ from tests.configs import MAX_PARAMETERS_COUNT
 from tests.hints import Operator
 from tests.utils import (Domain,
                          Strategy,
+                         base_namespace,
                          flatten,
                          identity,
                          is_not_dunder)
@@ -308,7 +308,7 @@ def _compile_function(name: str,
     function_node = ast.FunctionDef(name, signature, body, decorators, None)
     tree = ast.fix_missing_locations(module_factory([function_node]))
     code = compile(tree, '<ast>', 'exec')
-    namespace = {builtins.__name__: builtins}
+    namespace = dict(base_namespace)
     exec(code, namespace)
     return namespace[name]
 

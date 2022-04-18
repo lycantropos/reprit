@@ -1,7 +1,9 @@
+import builtins
 from enum import _is_dunder
 from itertools import chain
 from types import (MethodType,
-                   ModuleType)
+                   ModuleType,
+                   SimpleNamespace)
 from typing import (Any,
                     Dict,
                     Tuple,
@@ -19,6 +21,12 @@ Strategy = SearchStrategy
 Method = Union[Constructor, Initializer]
 ClassMethodInstance = Tuple[Type[Domain], Method, Domain]
 Namespace = Dict[str, Union[Domain, ModuleType]]
+
+test_types_module = SimpleNamespace()
+test_types_module.__name__ = 'test_types'
+
+base_namespace = {builtins.__name__: builtins,
+                  test_types_module.__name__: test_types_module}
 
 
 def are_objects_equivalent(left: Any, right: Any) -> bool:

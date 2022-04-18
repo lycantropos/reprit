@@ -1,4 +1,3 @@
-import builtins
 import platform
 import sys
 
@@ -13,6 +12,7 @@ from tests import strategies
 from tests.utils import (ClassMethodInstance,
                          Method,
                          are_objects_equivalent,
+                         base_namespace,
                          to_namespace)
 
 
@@ -79,7 +79,7 @@ def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
                                   if with_module_name
                                   else cls.__qualname__,
                                   cls),
-                   builtins.__name__: builtins})
+                   **base_namespace})
 
     assert are_objects_equivalent(instance, result)
 

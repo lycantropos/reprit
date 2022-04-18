@@ -1,16 +1,27 @@
 import builtins
 import inspect
+from enum import (Enum,
+                  EnumMeta,
+                  _is_dunder,
+                  _is_sunder)
+from string import ascii_letters
 from types import ModuleType
 from typing import (Any,
+                    Callable,
                     Dict,
+                    Hashable,
                     List,
+                    Optional,
+                    Sequence,
                     Union)
 
 from hypothesis import strategies
 
 from reprit import serializers
 from tests.configs import MAX_ALIKE_PARAMETERS_COUNT
-from tests.utils import flatten
+from tests.utils import (Strategy,
+                         flatten,
+                         test_types_module)
 from .factories import (to_characters,
                         to_dictionaries,
                         to_homogeneous_frozensets,
@@ -45,8 +56,67 @@ def module_to_classes(module: ModuleType) -> List[type]:
 
 deferred_hashables = strategies.deferred(lambda: hashables)
 deferred_objects = strategies.deferred(lambda: objects)
+
+Bases = Sequence[type]
+UniqueBy = Callable[[Any], Hashable]
+
+identifiers_characters = strategies.sampled_from('_' + ascii_letters)
+python_identifiers = (strategies.text(alphabet=identifiers_characters,
+                                      min_size=1)
+                      .filter(str.isidentifier))
+
+
+def is_valid_key(key: str) -> bool:
+    return not is_invalid_key(key) and not _is_dunder(key)
+
+
+def is_invalid_key(key: str) -> bool:
+    return _is_sunder(key) or key == type.mro.__name__
+
+
+def enum_types(*,
+               names: Strategy[str] = python_identifiers,
+               bases: Strategy[Bases]
+               = strategies.tuples(strategies.just(Enum)),
+               keys: Strategy[str] = python_identifiers.filter(is_valid_key),
+               values: Strategy[Any] = strategies.integers(),
+               unique_by: Optional[UniqueBy] = None,
+               min_size: int = 0,
+               max_size: Optional[int] = None) -> Strategy[EnumMeta]:
+    contents = (strategies.tuples(strategies.lists(keys,
+                                                   min_size=min_size,
+                                                   max_size=max_size,
+                                                   unique=True),
+                                  strategies.lists(values,
+                                                   min_size=min_size,
+                                                   max_size=max_size,
+                                                   unique_by=unique_by))
+                .map(lambda items: dict(zip(*items))))
+    return (strategies.tuples(names, bases, contents)
+            .map(lambda args: _to_enum(*args)))
+
+
+def _to_enum(name: str, bases: Bases, contents: Dict[str, Any]) -> EnumMeta:
+    result = EnumMeta(name, bases, _to_enum_contents(name, bases, contents))
+    result.__module__ = test_types_module.__name__
+    setattr(test_types_module, name, result)
+    return result
+
+
+def _to_enum_contents(name: str,
+                      bases: Bases,
+                      contents: Dict[str, Any]) -> Dict[str, Any]:
+    result = EnumMeta.__prepare__(name, bases)
+    # can't use `update` method because `_EnumDict` overloads `__setitem__`
+    for name, content in contents.items():
+        result[name] = content
+    return result
+
+
+enums = enum_types(min_size=1).map(list).flatmap(strategies.sampled_from)
 hashables = (scalars
              | strings
+             | enums
              | to_homogeneous_frozensets(deferred_hashables)
              | to_homogeneous_tuples(deferred_hashables))
 iterables = (strings
