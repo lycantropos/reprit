@@ -22,10 +22,12 @@ Method = Union[Constructor, Initializer]
 ClassMethodInstance = Tuple[Type[Domain], Method, Domain]
 Namespace = Dict[str, Union[Domain, ModuleType]]
 
-test_types_module = SimpleNamespace()
-test_types_module.__name__ = 'test_types'
-base_namespace = {builtins.__name__: builtins,
-                  test_types_module.__name__: test_types_module}
+
+def to_base_namespace(value: Any) -> Namespace:
+    return {builtins.__name__: builtins,
+            **{type(field).__module__:
+                   SimpleNamespace(**{type(field).__qualname__: type(field)})
+               for name, field in vars(value).items()}}
 
 
 def are_objects_equivalent(left: Any, right: Any) -> bool:

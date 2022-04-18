@@ -19,8 +19,7 @@ from hypothesis import strategies
 from reprit import serializers
 from tests.configs import MAX_ALIKE_PARAMETERS_COUNT
 from tests.utils import (Strategy,
-                         flatten,
-                         test_types_module)
+                         flatten)
 from .factories import (to_characters,
                         to_dictionaries,
                         to_homogeneous_frozensets,
@@ -69,7 +68,6 @@ def is_invalid_key(key: str) -> bool:
     return _is_sunder(key) or key == type.mro.__name__
 
 
-
 def enum_types(*,
                names: Strategy[str] = any_identifiers,
                bases: Strategy[Bases]
@@ -93,14 +91,7 @@ def enum_types(*,
 
 
 def _to_enum(name: str, bases: Bases, contents: Dict[str, Any]) -> EnumMeta:
-    namesake = getattr(test_types_module, name, None)
-    if namesake is not None:
-        assert isinstance(namesake, EnumMeta)
-        contents.update({element.name: element.value for element in namesake})
-    result = EnumMeta(name, bases, _to_enum_contents(name, bases, contents))
-    result.__module__ = test_types_module.__name__
-    setattr(test_types_module, name, result)
-    return result
+    return EnumMeta(name, bases, _to_enum_contents(name, bases, contents))
 
 
 def _to_enum_contents(name: str,

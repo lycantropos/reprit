@@ -34,8 +34,10 @@ def methods_to_namespace(methods: Iterable[Method]) -> Namespace:
 
 simple_classes_namespaces = (
         strategies.fixed_dictionaries({
-            INITIALIZER_NAME: to_initializers(
-                    field_name_factories=simple_class_field_name_factories)})
+            INITIALIZER_NAME:
+                (to_initializers
+                 (field_name_factories=simple_class_field_name_factories))
+        })
         | (((to_constructors_with_initializers
              (field_name_factories=simple_class_field_name_factories))
             | (to_custom_constructors_with_initializers
