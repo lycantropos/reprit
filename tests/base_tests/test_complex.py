@@ -1,6 +1,3 @@
-import platform
-import sys
-
 import pytest
 from hypothesis import given
 
@@ -55,9 +52,6 @@ def test_call(class_method_instance: ClassMethodInstance,
     assert isinstance(result, str)
 
 
-@pytest.mark.skipif(platform.python_implementation() == 'PyPy'
-                    and sys.version_info > (3, 5, 3),
-                    reason='Unreproducible failures on PyPy3.5.3')
 @given(strategies.complex_classes_with_methods_and_instances,
        strategies.booleans, strategies.booleans, strategies.booleans)
 def test_evaluation(class_with_method_and_instance: ClassMethodInstance,
