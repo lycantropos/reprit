@@ -244,12 +244,11 @@ def unpack(value: Any) -> Iterable[Any]:
     yield value
 
 
-unpack.register(str, unpack)
-
-
 @unpack.register(abc.Iterable)
 def _(value: Iterable[Any]) -> Iterable[Any]:
     yield value
+    if isinstance(value, str):
+        return
     for element in value:
         yield from unpack(element)
 
