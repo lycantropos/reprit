@@ -227,13 +227,13 @@ def _to_initializer(signature_data: SignatureData,
 
 
 def _signature_data_to_namespace(signature_data: SignatureData) -> Namespace:
-    return {builtins.__name__: builtins,
-            **{type(value).__module__:
+    return {**{type(value).__module__:
                    types.SimpleNamespace(**{
                        type(value).__qualname__: type(value)
                    })
                for signature_datum in signature_data.values()
-               for _, value, _ in signature_datum}}
+               for _, value, _ in signature_datum},
+            builtins.__name__: builtins}
 
 
 def _to_constructor_body(class_parameter_name: str = CLASS_PARAMETER_NAME,
