@@ -7,8 +7,8 @@ from typing import (Any,
 from hypothesis import strategies
 
 from reprit import serializers
-from reprit.core.hints import Domain
 from tests.utils import (ClassMethodInstance,
+                         Domain,
                          Method,
                          Namespace,
                          Strategy,

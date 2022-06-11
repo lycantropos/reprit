@@ -26,8 +26,7 @@ from hypothesis import strategies
 
 from reprit import serializers
 from reprit.core.hints import (Constructor,
-                               Initializer,
-                               Map)
+                               Initializer)
 from tests.configs import MAX_PARAMETERS_COUNT
 from tests.hints import Operator
 from tests.utils import (Domain,
@@ -78,7 +77,7 @@ PRE_PYTHON_3_8 = sys.version_info < (3, 8)
 def to_constructors_with_initializers(
         *,
         parameters_names: Strategy[str] = identifiers.snake_case,
-        parameters_names_unique_by: Map[str, int] = identity,
+        parameters_names_unique_by: Callable[[str], int] = identity,
         field_name_factories: Strategy[Operator[str]]
 ) -> Strategy[Tuple[Constructor, Initializer]]:
     parameters_names_lists = strategies.lists(
@@ -98,7 +97,7 @@ def to_custom_constructors_with_initializers(
         *,
         names: Strategy[str] = identifiers.snake_case.filter(is_not_dunder),
         parameters_names: Strategy[str] = identifiers.snake_case,
-        parameters_names_unique_by: Map[str, int] = identity,
+        parameters_names_unique_by: Callable[[str], int] = identity,
         field_name_factories: Strategy[Operator[str]]
 ) -> Strategy[Tuple[Constructor, Initializer]]:
     parameters_names_lists = strategies.lists(
@@ -127,7 +126,7 @@ def to_custom_constructors_with_initializers(
 
 def to_initializers(*,
                     parameters_names: Strategy[str] = identifiers.snake_case,
-                    parameters_names_unique_by: Map[str, int] = identity,
+                    parameters_names_unique_by: Callable[[str], int] = identity,
                     field_name_factories: Strategy[Operator[str]]
                     ) -> Strategy[Initializer]:
     parameters_names_lists = strategies.lists(

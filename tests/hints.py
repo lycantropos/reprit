@@ -1,4 +1,5 @@
-from reprit.core.hints import (Domain,
-                               Map)
+from typing import (Callable,
+                    TypeVar)
 
-Operator = Map[Domain, Domain]
+_T = TypeVar('_T')
+Operator = Callable[[_T], _T]
