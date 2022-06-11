@@ -1,8 +1,9 @@
 from typing import (Callable,
-                    TypeVar)
+                    TypeVar,
+                    Union)
 
 Domain = TypeVar('Domain')
 Range = TypeVar('Range')
 Map = Callable[[Domain], Range]
-Constructor = Callable[..., Domain]
+Constructor = Union[Callable[..., Domain], classmethod, staticmethod]
 Initializer = Callable[..., None]

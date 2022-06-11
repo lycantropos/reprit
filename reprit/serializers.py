@@ -1,3 +1,4 @@
+from enum import Enum as _Enum
 from functools import singledispatch as _singledispatch
 from types import (BuiltinFunctionType as _BuiltinFunctionType,
                    BuiltinMethodType as _BuiltinMethodType,
@@ -6,9 +7,7 @@ from types import (BuiltinFunctionType as _BuiltinFunctionType,
                    MemberDescriptorType as _MemberDescriptorType,
                    MethodType as _MethodType,
                    ModuleType as _ModuleType)
-from typing import (Any as _Any,
-                    Union as _Union)
-from enum import Enum as _Enum
+from typing import Union as _Union
 
 try:
     from types import ClassMethodDescriptorType as _ClassMethodDescriptorType
@@ -31,7 +30,7 @@ simple = repr
 
 
 @_singledispatch
-def complex_(object_: _Any) -> str:
+def complex_(object_):
     return repr(object_)
 
 
