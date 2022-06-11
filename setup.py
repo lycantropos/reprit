@@ -14,6 +14,7 @@ def read_file(path_string: str) -> str:
 
 setup(name=reprit.__name__,
       packages=find_packages(exclude=('tests', 'tests.*')),
+      package_data={reprit.__name__: ['py.typed', 'serializers.pyi']},
       version=reprit.__version__,
       description=reprit.__doc__,
       long_description=read_file('README.md'),
