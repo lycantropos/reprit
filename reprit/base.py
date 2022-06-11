@@ -121,7 +121,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
 
     if method_name == '__init__' or method_name == '__new__':
         # remove `cls`/`self`
-        parameters.popitem(0)
+        parameters.popitem(False)
 
         def __repr__(self: _Domain) -> str:
             return (to_class_name(type(self))
@@ -129,7 +129,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
     else:
         if isinstance(method, classmethod):
             # remove `cls`
-            parameters.popitem(0)
+            parameters.popitem(False)
 
         def __repr__(self: _Domain) -> str:
             return (to_class_name(type(self)) + '.' + method_name
