@@ -4,15 +4,14 @@ from inspect import (_ParameterKind,
                      signature as _signature)
 from types import MethodType as _MethodType
 from typing import (Any as _Any,
+                    Callable as _Callable,
                     Iterable as _Iterable,
                     Union as _Union)
 
 from . import (seekers as _seekers,
                serializers as _serializers)
 from .core.hints import (Constructor as _Constructor,
-                         Domain as _Domain,
-                         Initializer as _Initializer,
-                         Map as _Map)
+                         Initializer as _Initializer)
 from .hints import (ArgumentSerializer as _ArgumentSerializer,
                     FieldSeeker as _FieldSeeker)
 
@@ -24,7 +23,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                   field_seeker: _FieldSeeker = _seekers.simple,
                   prefer_keyword: bool = False,
                   skip_defaults: bool = False,
-                  with_module_name: bool = False) -> _Map[_Domain, str]:
+                  with_module_name: bool = False) -> _Callable[[_Any], str]:
     """
     Generates ``__repr__`` method based on constructor/initializer parameters.
 
@@ -123,7 +122,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
         # remove `cls`/`self`
         parameters.popitem(False)
 
-        def __repr__(self: _Domain) -> str:
+        def __repr__(self: _Any) -> str:
             return (to_class_name(type(self))
                     + '(' + ', '.join(to_arguments_strings(self)) + ')')
     else:
@@ -131,7 +130,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
             # remove `cls`
             parameters.popitem(False)
 
-        def __repr__(self: _Domain) -> str:
+        def __repr__(self: _Any) -> str:
             return (to_class_name(type(self)) + '.' + method_name
                     + '(' + ', '.join(to_arguments_strings(self)) + ')')
 
@@ -147,7 +146,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
         if parameter.kind is _ParameterKind.POSITIONAL_ONLY
     ]
 
-    def to_arguments_strings(object_: _Domain) -> _Iterable[str]:
+    def to_arguments_strings(object_: _Any) -> _Iterable[str]:
         variadic_positional_unset = (
                 variadic_positional is None
                 or not field_seeker(object_, variadic_positional.name))
@@ -194,7 +193,7 @@ def generate_repr(method: _Union[_Constructor, _Initializer],
                        or kind is _ParameterKind.POSITIONAL_OR_KEYWORD)):
                 positional_or_keyword_is_keyword = True
 
-    def seek_field(object_: _Domain, name: str) -> _Any:
+    def seek_field(object_: _Any, name: str) -> _Any:
         result = field_seeker(object_, name)
         if isinstance(result, _MethodType) and result.__self__ is object_:
             result = result()

@@ -1,6 +1,5 @@
 from typing import Any as _Any
 
-from .core.hints import Domain as _Domain
 from .core.utils import group_by as _group_by
 
 simple = getattr
@@ -14,7 +13,7 @@ simple = getattr
 # do not confuse with "mangled" ones, ``__value`` in our case)
 # and both
 # (like in case with parameter ``id_`` and field ``_id``)
-def complex_(object_: _Domain, parameter_name: str) -> _Any:
+def complex_(object_: _Any, parameter_name: str) -> _Any:
     try:
         return getattr(object_, parameter_name)
     except AttributeError as original_error:
