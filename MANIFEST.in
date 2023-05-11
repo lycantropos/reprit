@@ -1,1 +1,3 @@
 include LICENSE
+include reprit/py.typed
+recursive-include reprit *.pyi
