@@ -1,30 +1,38 @@
+import sys as _sys
+import typing as _t
 from enum import Enum as _Enum
 from functools import singledispatch as _singledispatch
 from types import (BuiltinFunctionType as _BuiltinFunctionType,
                    BuiltinMethodType as _BuiltinMethodType,
+                   ClassMethodDescriptorType as _ClassMethodDescriptorType,
                    FunctionType as _FunctionType,
                    GetSetDescriptorType as _GetSetDescriptorType,
                    MemberDescriptorType as _MemberDescriptorType,
+                   MethodDescriptorType as _MethodDescriptorType,
                    MethodType as _MethodType,
-                   ModuleType as _ModuleType)
-from typing import Union as _Union
+                   MethodWrapperType as _MethodWrapperType,
+                   ModuleType as _ModuleType,
+                   WrapperDescriptorType as _WrapperDescriptorType)
 
-try:
-    from types import ClassMethodDescriptorType as _ClassMethodDescriptorType
-except ImportError:
-    _ClassMethodDescriptorType = type(dict.__dict__['fromkeys'])
-try:
-    from types import MethodDescriptorType as _MethodDescriptorType
-except ImportError:
-    _MethodDescriptorType = type(str.join)
-try:
-    from types import MethodWrapperType as _MethodWrapperType
-except ImportError:
-    _MethodWrapperType = type(object().__str__)
-try:
-    from types import WrapperDescriptorType as _WrapperDescriptorType
-except ImportError:
-    _WrapperDescriptorType = type(object.__init__)
+import typing_extensions as te
+
+_Params = te.ParamSpec('_Params')
+_T1 = _t.TypeVar('_T1')
+_T2 = _t.TypeVar('_T2')
+
+
+def _decorate_if(
+        decorator: _t.Callable[[_t.Callable[_Params, _T1]], _t.Any],
+        condition: bool
+) -> _t.Callable[[_t.Callable[_Params, _T1]], _t.Any]:
+    return decorator if condition else _identity_decorator
+
+
+def _identity_decorator(
+        value: _t.Callable[_Params, _T1]
+) -> _t.Callable[_Params, _T1]:
+    return value
+
 
 simple = repr
 
@@ -37,25 +45,34 @@ def complex_(object_):
 @complex_.register(_BuiltinFunctionType)
 @complex_.register(_FunctionType)
 @complex_.register(type)
-def _(object_: _Union[_BuiltinFunctionType, _FunctionType, type]) -> str:
+def _(object_: _t.Union[_BuiltinFunctionType, _FunctionType, type]) -> str:
     return object_.__module__ + '.' + object_.__qualname__
 
 
-@complex_.register(_BuiltinMethodType)
+@_decorate_if(complex_.register(_BuiltinMethodType),
+              _sys.implementation.name != 'pypy')
 @complex_.register(_MethodType)
-def _(object_: _Union[_BuiltinMethodType, _MethodType]) -> str:
+def _(object_: _t.Union[_BuiltinMethodType, _MethodType]) -> str:
     return complex_(object_.__self__) + '.' + object_.__name__
 
 
-@complex_.register(_ClassMethodDescriptorType)
+@_decorate_if(complex_.register(_ClassMethodDescriptorType),
+              _sys.implementation.name != 'pypy')
+@_decorate_if(complex_.register(_MethodDescriptorType),
+              _sys.implementation.name != 'pypy')
+@_decorate_if(complex_.register(_MethodWrapperType),
+              _sys.implementation.name != 'pypy')
+@_decorate_if(complex_.register(_WrapperDescriptorType),
+              _sys.implementation.name != 'pypy')
 @complex_.register(_GetSetDescriptorType)
 @complex_.register(_MemberDescriptorType)
-@complex_.register(_MethodDescriptorType)
-@complex_.register(_MethodWrapperType)
-@complex_.register(_WrapperDescriptorType)
-def _(object_: _Union[_ClassMethodDescriptorType, _GetSetDescriptorType,
-                      _MemberDescriptorType, _MethodDescriptorType,
-                      _MethodWrapperType, _WrapperDescriptorType]) -> str:
+def _(
+        object_: _t.Union[
+            _ClassMethodDescriptorType, _GetSetDescriptorType,
+            _MemberDescriptorType, _MethodDescriptorType, _MethodWrapperType,
+            _WrapperDescriptorType
+        ]
+) -> str:
     return complex_(object_.__objclass__) + '.' + object_.__name__
 
 
@@ -71,7 +88,7 @@ def _(object_: _ModuleType) -> str:
 
 @complex_.register(classmethod)
 @complex_.register(staticmethod)
-def _(object_: _Union[classmethod, staticmethod]) -> str:
+def _(object_: _t.Union[classmethod, staticmethod]) -> str:
     return '{}({})'.format(complex_(type(object_)), complex_(object_.__func__))
 
 
