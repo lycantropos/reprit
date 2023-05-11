@@ -9,10 +9,9 @@ services:
         - IMAGE_VERSION=${CPYTHON_IMAGE_VERSION}
     image: lycantropos/reprit-cpython:0.8.0
     volumes:
-      - ./pytest.ini:/opt/reprit/pytest.ini
+      - ./pyproject.toml:/opt/reprit/pyproject.toml
       - ./README.md:/opt/reprit/README.md
       - ./reprit:/opt/reprit/reprit
-      - ./requirements-tests.txt:/opt/reprit/requirements-tests.txt
       - ./setup.py:/opt/reprit/setup.py
       - ./tests:/opt/reprit/tests
     entrypoint: pytest
