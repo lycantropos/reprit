@@ -54,11 +54,12 @@ def to_count_with_flags(count: int) -> Strategy[Tuple[int, List[bool]]]:
                                               max_size=count))
 
 
-def to_classes(*,
-               names: Strategy[str] = identifiers.pascal_case,
-               bases: Strategy[Tuple[type, ...]],
-               namespaces: Strategy[Dict[str, MethodType]]
-               ) -> Strategy[Type[Domain]]:
+def to_classes(
+        *,
+        names: Strategy[str] = identifiers.pascal_case,
+        bases: Strategy[Tuple[type, ...]],
+        namespaces: Strategy[Dict[str, MethodType]]
+) -> Strategy[Type[Domain]]:
     return strategies.builds(type, names, bases, namespaces)
 
 
@@ -105,7 +106,8 @@ def to_custom_constructors_with_initializers(
                                     name not in (SELF_PARAMETER_NAME,
                                                  DEFAULT_CONSTRUCTOR_NAME)),
             max_size=MAX_PARAMETERS_COUNT,
-            unique_by=parameters_names_unique_by)
+            unique_by=parameters_names_unique_by
+    )
     signatures_data = (strategies.tuples(parameters_names_lists,
                                          defaults_lists)
                        .flatmap(_to_signature_data))
@@ -126,7 +128,8 @@ def to_custom_constructors_with_initializers(
 
 def to_initializers(*,
                     parameters_names: Strategy[str] = identifiers.snake_case,
-                    parameters_names_unique_by: Callable[[str], int] = identity,
+                    parameters_names_unique_by: Callable[
+                        [str], int] = identity,
                     field_name_factories: Strategy[Operator[str]]
                     ) -> Strategy[Initializer]:
     parameters_names_lists = strategies.lists(
@@ -385,10 +388,12 @@ def _to_signature(first_parameter_name: str,
             positionals_only_defaults = [
                 _value_to_ast(default)
                 for _, default, _ in positionals_only_data
-                if default is not inspect.Parameter.empty]
+                if default is not inspect.Parameter.empty
+            ]
             positionals_only_nodes = (
                     [ast.arg(first_parameter_name, None)]
-                    + to_parameters(map(itemgetter(0), positionals_only_data)))
+                    + to_parameters(map(itemgetter(0), positionals_only_data))
+            )
             not_keyword_defaults = (positionals_only_defaults
                                     + positionals_or_keywords_defaults)
         else:
@@ -396,7 +401,8 @@ def _to_signature(first_parameter_name: str,
              positionals_or_keywords_nodes) = (
                 positionals_or_keywords_defaults, [],
                 [ast.arg(first_parameter_name, None)]
-                + positionals_or_keywords_nodes)
+                + positionals_or_keywords_nodes
+            )
         return ast.arguments(positionals_only_nodes,
                              positionals_or_keywords_nodes,
                              variadic_positional_node, keywords_only_nodes,
