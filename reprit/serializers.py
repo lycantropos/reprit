@@ -14,9 +14,9 @@ from types import (BuiltinFunctionType as _BuiltinFunctionType,
                    ModuleType as _ModuleType,
                    WrapperDescriptorType as _WrapperDescriptorType)
 
-import typing_extensions as te
+import typing_extensions as _te
 
-_Params = te.ParamSpec('_Params')
+_Params = _te.ParamSpec('_Params')
 _T1 = _t.TypeVar('_T1')
 _T2 = _t.TypeVar('_T2')
 
