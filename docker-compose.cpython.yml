@@ -7,7 +7,7 @@ services:
       args:
         - IMAGE_NAME=${CPYTHON_IMAGE_NAME}
         - IMAGE_VERSION=${CPYTHON_IMAGE_VERSION}
-    image: lycantropos/reprit-cpython:0.8.0
+    image: lycantropos/reprit-cpython:0.9.0-alpha
     volumes:
       - ./pyproject.toml:/opt/reprit/pyproject.toml
       - ./README.md:/opt/reprit/README.md
