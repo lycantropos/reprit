@@ -16,7 +16,9 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 requires-python = ">=3.7"
-dependencies = []
+dependencies = [
+    "typing_extensions>=4.4.0,<5.0"
+]
 dynamic = ["version"]
 
 [project.optional-dependencies]
